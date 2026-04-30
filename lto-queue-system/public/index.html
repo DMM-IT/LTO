@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LTO Calapan – Queue System</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { min-height: 100%; font-family: 'Poppins', sans-serif; background: linear-gradient(160deg, #0D47A1 0%, #1565C0 50%, #1E88E5 100%); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; }
+  .logo { width: 90px; height: 90px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 900; color: #0D47A1; margin: 0 auto 20px; box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
+  h1 { font-size: 26px; font-weight: 800; text-align: center; }
+  p  { font-size: 15px; opacity: 0.8; text-align: center; margin-top: 6px; margin-bottom: 44px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; max-width: 900px; width: 100%; }
+  .card { background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.25); border-radius: 20px; padding: 32px 24px; text-align: center; text-decoration: none; color: white; transition: all 0.25s ease; backdrop-filter: blur(8px); }
+  .card:hover { background: rgba(255,255,255,0.25); transform: translateY(-8px); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+  .card .icon { font-size: 52px; margin-bottom: 16px; }
+  .card h2 { font-size: 20px; font-weight: 700; }
+  .card .desc { font-size: 13px; opacity: 0.75; margin-top: 8px; line-height: 1.5; }
+  .card .url { font-size: 11px; opacity: 0.55; margin-top: 12px; font-style: italic; }
+  footer { margin-top: 40px; font-size: 12px; opacity: 0.5; text-align: center; }
+</style>
+</head>
+<body>
+  <div class="logo">LTO</div>
+  <h1>LTO Calapan City District Office</h1>
+  <p>Queue Management System — Select a module to open</p>
+
+  <div class="cards">
+    <a class="card" href="/kiosk.html">
+      <div class="icon">🖥️</div>
+      <h2>Kiosk</h2>
+      <div class="desc">Client-facing ticket machine. Clients select their transaction and get a queue number here.</div>
+      <div class="url">/kiosk.html</div>
+    </a>
+    <a class="card" href="/board.html">
+      <div class="icon">📺</div>
+      <h2>Queue Board</h2>
+      <div class="desc">Large display screen showing "Now Serving" numbers and waiting queue per station.</div>
+      <div class="url">/board.html</div>
+    </a>
+    <a class="card" href="/counter.html">
+      <div class="icon">🧑‍💼</div>
+      <h2>Counter / Window</h2>
+      <div class="desc">Staff workstation. Call clients, verify checklist, complete or return documents.</div>
+      <div class="url">/counter.html</div>
+    </a>
+    <a class="card" href="/admin.html">
+      <div class="icon">⚙️</div>
+      <h2>Admin Panel</h2>
+      <div class="desc">View daily statistics, ticket table, active windows, and reset the system.</div>
+      <div class="url">/admin.html</div>
+    </a>
+  </div>
+
+  <footer>LTO Calapan City District Office &mdash; Queue Management System &mdash; All computers must be on the same local network</footer>
+</body>
+</html>

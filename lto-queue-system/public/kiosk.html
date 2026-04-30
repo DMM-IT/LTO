@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LTO Calapan – Queue Kiosk v2</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue-dark: #0D47A1;
+    --blue: #1565C0;
+    --blue-mid: #1976D2;
+    --blue-light: #42A5F5;
+    --blue-pale: #E3F2FD;
+    --blue-bg: #BBDEFB;
+    --white: #FFFFFF;
+    --gray: #607D8B;
+    --success: #2E7D32;
+    --gold: #F9A825;
+    --red: #C62828;
+  }
+  html, body {
+    height: 100%; font-family: 'Poppins', sans-serif;
+    background: linear-gradient(160deg, var(--blue-dark) 0%, var(--blue) 40%, #1E88E5 100%);
+    color: var(--white); overflow-x: hidden;
+  }
+
+  /* HEADER */
+  .kiosk-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 40px; background: rgba(0,0,0,0.25);
+    border-bottom: 2px solid rgba(255,255,255,0.2);
+  }
+  .lto-brand { display: flex; align-items: center; gap: 16px; }
+  .lto-logo {
+    width: 70px; height: 70px; border-radius: 50%;
+    background: var(--white); display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 800; color: var(--blue-dark); flex-shrink: 0;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  }
+  .lto-title h1 { font-size: 22px; font-weight: 700; line-height: 1.2; }
+  .lto-title p { font-size: 13px; opacity: 0.8; }
+  .header-time .time { font-size: 32px; font-weight: 700; }
+  .header-time .date { font-size: 13px; opacity: 0.8; }
+
+  /* SCREENS */
+  .screen { display: none; flex-direction: column; align-items: center; min-height: calc(100vh - 115px); padding: 40px 30px; }
+  .screen.active { display: flex; }
+  .screen-title { font-size: 28px; font-weight: 700; text-align: center; margin-bottom: 8px; }
+  .screen-sub { font-size: 16px; opacity: 0.8; text-align: center; margin-bottom: 40px; }
+
+  /* CATEGORY GRID (Screen 1) */
+  .cat-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px; width: 100%; max-width: 1200px;
+  }
+  .cat-card {
+    background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.25);
+    border-radius: 24px; padding: 36px 28px; text-align: center; cursor: pointer;
+    transition: all 0.3s ease; backdrop-filter: blur(10px);
+  }
+  .cat-card:hover { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.7); transform: translateY(-8px); box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+  .cat-card .icon { font-size: 64px; margin-bottom: 18px; }
+  .cat-card .name { font-size: 22px; font-weight: 700; line-height: 1.3; }
+  .cat-card .count { font-size: 13px; opacity: 0.7; margin-top: 8px; background: rgba(255,255,255,0.2); border-radius: 20px; padding: 4px 12px; display: inline-block; }
+
+  /* SUB-TX GRID (Screen 2) */
+  .sub-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px; width: 100%; max-width: 1000px;
+  }
+  .sub-card {
+    background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 20px; padding: 28px 24px; text-align: center; cursor: pointer;
+    transition: all 0.25s ease;
+  }
+  .sub-card:hover { background: rgba(255,255,255,0.25); transform: translateY(-6px); box-shadow: 0 16px 40px rgba(0,0,0,0.25); }
+  .sub-card .icon { font-size: 48px; margin-bottom: 14px; }
+  .sub-card .name { font-size: 18px; font-weight: 600; }
+  .sub-card .code { font-size: 12px; opacity: 0.8; margin-top: 6px; padding: 3px 12px; background: rgba(255,255,255,0.15); border-radius: 16px; display: inline-block; }
+
+  /* PRIORITY (Screen 3) */
+  .priority-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 700px; width: 100%; }
+  .priority-card { background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.25); border-radius: 20px; padding: 36px 24px; text-align: center; cursor: pointer; transition: all 0.25s ease; }
+  .priority-card:hover { background: rgba(255,255,255,0.25); transform: translateY(-5px); }
+  .priority-card .icon { font-size: 52px; margin-bottom: 14px; }
+  .priority-card .label { font-size: 20px; font-weight: 600; }
+  .priority-card .desc { font-size: 13px; opacity: 0.7; margin-top: 6px; }
+
+  /* TICKET */
+  .ticket-wrapper { perspective: 800px; }
+  .ticket { background: var(--white); color: #1a1a2e; border-radius: 20px; width: 420px; max-width: 95vw; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.4); animation: flipIn 0.6s ease; }
+  @keyframes flipIn { from { opacity: 0; transform: rotateY(-90deg); } to { opacity: 1; transform: rotateY(0); } }
+  .ticket-header { background: var(--blue-dark); color: white; padding: 24px 28px; text-align: center; border-bottom: 4px solid var(--blue-light); }
+  .ticket-header .lto-name { font-size: 14px; font-weight: 600; opacity: 0.9; }
+  .ticket-header .cat-name { font-size: 15px; font-weight: 600; margin-top: 4px; opacity: 0.9; }
+  .ticket-header .tx-name { font-size: 16px; font-weight: 700; }
+  .ticket-body { padding: 32px 28px; text-align: center; }
+  .ticket-label { font-size: 13px; color: var(--gray); font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
+  .ticket-number { font-size: 80px; font-weight: 900; color: var(--blue-dark); line-height: 1; margin: 12px 0 20px; letter-spacing: 4px; }
+  .ticket-priority-badge { display: inline-block; background: var(--gold); color: #333; font-size: 13px; font-weight: 700; padding: 6px 16px; border-radius: 25px; margin-bottom: 20px; }
+  .ticket-info { background: var(--blue-pale); border-radius: 14px; padding: 16px 20px; text-align: left; margin: 20px 0; }
+  .ticket-info-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; margin-bottom: 8px; }
+  .ticket-info-row .k { color: var(--gray); }
+  .ticket-info-row .v { font-weight: 600; color: var(--blue-dark); }
+  .ticket-steps-label { font-size: 12px; color: var(--gray); margin-bottom: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
+  .steps-track { display: flex; align-items: center; gap: 0; }
+  .step-dot { width: 32px; height: 32px; border-radius: 50%; background: var(--blue-pale); border: 3px solid var(--blue); color: var(--blue); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin: 0 4px; }
+  .step-dot.active { background: var(--blue); color: white; }
+  .step-line { flex: 1; height: 3px; background: var(--blue-pale); }
+  .ticket-footer { padding: 20px 28px; border-top: 2px dashed #ddd; font-size: 13px; color: var(--gray); text-align: center; }
+
+  /* BUTTONS */
+  .btn-row { display: flex; gap: 16px; margin-top: 32px; flex-wrap: wrap; justify-content: center; }
+  .btn { padding: 16px 36px; border-radius: 50px; font-size: 17px; font-weight: 600; border: none; cursor: pointer; transition: all 0.25s; font-family: 'Poppins', sans-serif; }
+  .btn-primary { background: var(--blue-light); color: white; }
+  .btn-primary:hover { background: #1E88E5; transform: scale(1.03); }
+  .btn-white { background: white; color: var(--blue-dark); }
+  .btn-white:hover { background: var(--blue-pale); transform: scale(1.03); }
+  .btn-success { background: var(--success); color: white; }
+  .btn-success:hover { background: #1B5E20; transform: scale(1.03); }
+  .back-btn { position: fixed; top: 130px; left: 32px; background: rgba(255,255,255,0.18); border: 2px solid rgba(255,255,255,0.35); color: white; padding: 12px 24px; border-radius: 50px; cursor: pointer; font-size: 15px; font-weight: 500; transition: all 0.25s; }
+  .back-btn:hover { background: rgba(255,255,255,0.28); }
+
+  .countdown { font-size: 14px; opacity: 0.8; margin-top: 28px; }
+  .countdown span { font-weight: 700; color: var(--gold); }
+
+  @media print {
+    html, body { background: white !important; }
+    .kiosk-header, .back-btn, .btn-row, .countdown { display: none !important; }
+    .screen { min-height: auto; padding: 20px; }
+    .ticket { box-shadow: none; color: #000; max-width: none; width: 100%; }
+    .ticket-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<div class="kiosk-header">
+  <div class="lto-brand">
+    <div class="lto-logo">LTO</div>
+    <div class="lto-title">
+      <h1>Land Transportation Office</h1>
+      <p>Calapan City District Office — Enhanced Queue System v2</p>
+    </div>
+  </div>
+  <div class="header-time">
+    <div class="time" id="clock">--:--:--</div>
+    <div class="date" id="dateDisp">Loading...</div>
+  </div>
+</div>
+
+<!-- SCREEN 1: CATEGORIES -->
+<div class="screen active" id="screen-1">
+  <div class="screen-title">Maligayang Pagdating! / Welcome!</div>
+  <div class="screen-sub">Piliin ang kategorya ng inyong transaksyon / Select transaction category</div>
+  <div class="cat-grid" id="catGrid"><!-- Filled by JS --></div>
+</div>
+
+<!-- SCREEN 2: SUB-TRANSACTIONS -->
+<div class="screen" id="screen-2">
+  <button class="back-btn" onclick="showScreen('categories')">← Categories</button>
+  <div class="screen-title" id="subCatTitle">—</div>
+  <div class="screen-sub" id="subCatDesc">Piliin ang eksaktong transaksyon / Select specific transaction</div>
+  <div class="sub-grid" id="subGrid"><!-- Filled by JS --></div>
+</div>
+
+<!-- SCREEN 3: PRIORITY -->
+<div class="screen" id="screen-3">
+  <button class="back-btn" onclick="showScreen('subtypes')">← Back</button>
+  <div class="screen-title">Priority Lane / Priyoridad</div>
+  <div class="screen-sub">Pumili ng uri ng pila / Select lane type</div>
+  <div class="priority-grid">
+    <div class="priority-card" data-type="PWD">
+      <div class="icon">♿</div><div class="label">PWD</div><div class="desc">Person with Disability</div>
+    </div>
+    <div class="priority-card" data-type="SENIOR">
+      <div class="icon">👴</div><div class="label">Senior Citizen</div><div class="desc">60+ years old</div>
+    </div>
+    <div class="priority-card" data-type="PREGNANT">
+      <div class="icon">🤰</div><div class="label">Pregnant</div><div class="desc">Buntis / Expecting mother</div>
+    </div>
+    <div class="priority-card" data-type="REGULAR">
+      <div class="icon">🧍</div><div class="label">Regular</div><div class="desc">Ordinary client</div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 4: TICKET -->
+<div class="screen" id="screen-4" style="justify-content:center;">
+  <div class="ticket-wrapper">
+    <div class="ticket" id="ticketCard">
+      <div class="ticket-header">
+        <div class="lto-name">LTO Calapan City District Office</div>
+        <div class="cat-name" id="tkt-catname">—</div>
+        <div class="tx-name" id="tkt-txname">—</div>
+      </div>
+      <div class="ticket-body">
+        <div class="ticket-label">YOUR QUEUE NUMBER / INYONG NUMERO</div>
+        <div class="ticket-number" id="tkt-number">—</div>
+        <div id="tkt-priority-badge" style="display:none;" class="ticket-priority-badge">⭐ PRIORITY</div>
+        <div class="ticket-info">
+          <div class="ticket-info-row"><span class="k">Date / Petsa</span><span class="v" id="tkt-date">—</span></div>
+          <div class="ticket-info-row"><span class="k">Time / Oras</span><span class="v" id="tkt-time">—</span></div>
+          <div class="ticket-info-row"><span class="k">Priority</span><span class="v" id="tkt-priority">—</span></div>
+          <div class="ticket-info-row"><span class="k">Position</span><span class="v" id="tkt-position">—</span></div>
+        </div>
+        <div class="ticket-steps">
+          <div class="ticket-steps-label">Your Processing Steps</div>
+          <div class="steps-track" id="tkt-steps-track"></div>
+        </div>
+      </div>
+      <div class="ticket-footer">
+        <strong>Please stay in the waiting area and listen for your number.</strong><br>
+        Hintayin ang tawag ng inyong numero sa loob ng opisina.<br>
+        <small>LTO Calapan Queue System v2</small>
+      </div>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-success" onclick="printTicket()">🖨️ Print Ticket</button>
+    <button class="btn btn-primary" onclick="newTransaction()">➕ New Transaction</button>
+  </div>
+  <div class="countdown" id="countdown"><span>Auto-return in</span> <span id="cdSec">45</span>s</div>
+</div>
+
+<script>
+let config = { CATEGORIES: {}, STATIONS: {}, CHECKLISTS: {} };
+let currentCategory = null, selectedSubType = null, countdownTimer = null;
+let cdLeft = 45;
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('en-PH');
+  document.getElementById('dateDisp').textContent = now.toLocaleDateString('en-PH', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+}
+setInterval(updateClock, 1000); updateClock();
+
+async function loadConfig() {
+  try {
+    const resp = await fetch('/api/config');
+    config = await resp.json();
+    buildCategoryGrid();
+  } catch (e) {
+    alert('Server connection error. Retrying...');
+    setTimeout(loadConfig, 2000);
+  }
+}
+
+function buildCategoryGrid() {
+  const grid = document.getElementById('catGrid');
+  grid.innerHTML = '';
+  Object.entries(config.CATEGORIES).forEach(([id, cat]) => {
+    const card = document.createElement('div');
+    card.className = 'cat-card';
+    card.innerHTML = `
+      <div class="icon" style="color: ${cat.color};">${cat.icon}</div>
+      <div class="name">${cat.name}</div>
+      <div class="count">${Object.keys(cat.subTransactions).length} Transactions</div>
+    `;
+    card.onclick = () => selectCategory(id);
+    grid.appendChild(card);
+  });
+}
+
+function selectCategory(catId) {
+  currentCategory = catId;
+  const cat = config.CATEGORIES[catId];
+  document.getElementById('subCatTitle').textContent = cat.name;
+  document.getElementById('subCatDesc').textContent = 'Select specific service';
+  buildSubTypeGrid(catId);
+  showScreen('subtypes');
+}
+
+function buildSubTypeGrid(catId) {
+  const grid = document.getElementById('subGrid');
+  grid.innerHTML = '';
+  const cat = config.CATEGORIES[catId];
+  Object.entries(cat.subTransactions).forEach(([subId, sub]) => {
+    const card = document.createElement('div');
+    card.className = 'sub-card';
+    card.innerHTML = `
+      <div class="icon">${cat.icon}</div>
+      <div class="name">${sub.name}</div>
+      <div class="code">${sub.code}</div>
+    `;
+    card.onclick = () => selectSubType(catId, subId, sub);
+    grid.appendChild(card);
+  });
+}
+
+function selectSubType(catId, subId, subTx) {
+  selectedSubType = { category: catId, subType: subId, ...subTx };
+  showScreen('priority');
+}
+
+function showScreen(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(`screen-${{categories:1, subtypes:2, priority:3, ticket:4}[screen]}`).classList.add('active');
+  if (screen !== 'ticket') clearCountdown();
+}
+
+// PRIORITY HANDLERS
+document.querySelectorAll('.priority-card').forEach(card => {
+  card.onclick = () => {
+    const type = card.dataset.type;
+    issueTicket(type);
+  };
+});
+
+async function issueTicket(priorityType) {
+  try {
+    const resp = await fetch('/api/ticket', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ category: selectedSubType.category, subType: selectedSubType.subType, priorityType })
+    });
+    const data = await resp.json();
+    showTicket(data.ticket, data.position);
+    showScreen('ticket');
+    startCountdown();
+  } catch (e) {
+    alert('Ticket issuance failed. Please try again.');
+  }
+}
+
+function showTicket(ticket, position) {
+  document.getElementById('tkt-catname').textContent = config.CATEGORIES[ticket.category].name;
+  document.getElementById('tkt-txname').textContent = ticket.transactionName;
+  document.getElementById('tkt-number').textContent = ticket.id;
+  document.getElementById('tkt-date').textContent = new Date().toLocaleDateString('en-PH');
+  document.getElementById('tkt-time').textContent = new Date().toLocaleTimeString('en-PH');
+  document.getElementById('tkt-priority').textContent = ticket.priority === 'REGULAR' ? 'Regular' : `⭐ ${ticket.priority}`;
+  document.getElementById('tkt-position').textContent = `${position || 1} in queue`;
+
+  const badge = document.getElementById('tkt-priority-badge');
+  badge.style.display = ticket.isPriority ? 'block' : 'none';
+  badge.textContent = `⭐ ${ticket.priority} PRIORITY`;
+
+  // Steps
+  const track = document.getElementById('tkt-steps-track');
+  track.innerHTML = '';
+  ticket.steps.forEach((step, i) => {
+    if (i > 0) {
+      const line = document.createElement('div');
+      line.className = 'step-line';
+      track.appendChild(line);
+    }
+    const dot = document.createElement('div');
+    dot.className = `step-dot ${i === 0 ? 'active' : ''}`;
+    dot.title = ticket.stepNames[i];
+    dot.textContent = i + 1;
+    track.appendChild(dot);
+  });
+}
+
+function startCountdown() {
+  cdLeft = 45;
+  updateCountdown();
+  countdownTimer = setInterval(() => {
+    cdLeft--;
+    updateCountdown();
+    if (cdLeft <= 0) newTransaction();
+  }, 1000);
+}
+
+function updateCountdown() {
+  document.getElementById('cdSec').textContent = cdLeft;
+}
+
+function clearCountdown() {
+  if (countdownTimer) clearInterval(countdownTimer);
+  countdownTimer = null;
+}
+
+function printTicket() {
+  window.print();
+}
+
+function newTransaction() {
+  clearCountdown();
+  currentCategory = null;
+  selectedSubType = null;
+  showScreen('categories');
+}
+
+loadConfig();
+</script>
+</body>
+</html>

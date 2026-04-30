@@ -1,0 +1,416 @@
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const path = require('path');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ─── TRANSACTION DEFINITIONS ──────────────────────────────────────────────────
+const TRANSACTIONS = {
+  DL: {
+    name: \"Driver's License Renewal\",
+    shortName: \"DL Renewal\",
+    code: \"DL\",
+    icon: \"🪪\",
+    color: \"#1565C0\",
+    steps: [\"CSR\", \"ENCODING\", \"CASHIER\", \"EXAM\", \"PHOTO_BIO\", \"RELEASING\"],
+    stepNames: [\"Document Checking\", \"Encoding\", \"Payment / Cashier\", \"Written Exam\", \"Photo & Biometrics\", \"Releasing\"],
+    checklist: {
+      CSR: [
+        \"Original Driver's License\",
+        \"Valid Government-Issued ID (1 pc)\",
+        \"Medical Certificate (LTO-accredited clinic)\",
+        \"Accomplished Application Form (AAF)\",
+        \"2x2 Passport Photo (2 pcs)\",
+        \"PNP-HPG Clearance (if previously suspended)\"
+      ],
+      ENCODING: [\"Data encoded in system\", \"Application form reviewed\", \"Particulars verified\"],
+      CASHIER: [\"Renewal fee collected\", \"Official Receipt issued\", \"OR number recorded\"],
+      EXAM: [\"Written exam administered\", \"Exam result: PASSED\", \"Score recorded in logbook\"],
+      PHOTO_BIO: [\"Photo captured\", \"Fingerprints scanned (both thumbs)\", \"Electronic signature captured\"],
+      RELEASING: [\"New Driver's License printed\", \"License quality checked\", \"License released to client\", \"Client signed receiving logbook\"]
+    }
+  },
+  MV: {
+    name: \"MV Registration Renewal\",
+    shortName: \"MV Renewal\",
+    code: \"MV\",
+    icon: \"🚗\",
+    color: \"#0277BD\",
+    steps: [\"CSR\", \"MV_INSPECTION\", \"ENCODING\", \"CASHIER\", \"RELEASING\"],
+    stepNames: [\"Document Checking\", \"MV Inspection\", \"Encoding\", \"Payment / Cashier\", \"Releasing\"],
+    checklist: {
+      CSR: [
+        \"Previous Official Receipt (OR)\",
+        \"Previous Certificate of Registration (CR)\",
+        \"PNP-HPG MV Clearance Certificate\",
+        \"Emission Test Certificate (PETC) - valid\",
+        \"Compulsory Third Party Liability (CTPL) Insurance\",
+        \"Accomplished Application for Registration (AAR)\"
+      ],
+      MV_INSPECTION: [\"Vehicle physically inspected\", \"Plate number verified\", \"Chassis number verified\", \"Engine number verified\", \"Color matches OR/CR\"],
+      ENCODING: [\"Registration data encoded\", \"MV details verified in system\"],
+      CASHIER: [\"Registration fees collected\", \"Official Receipt issued\", \"OR number recorded\"],
+      RELEASING: [\"New OR/CR released to client\", \"Sticker affixed to plate (if applicable)\", \"Client signed receiving logbook\"]
+    }
+  },
+  OR: {
+    name: \"OR/CR Replacement\",
+    shortName: \"OR/CR Replace\",
+    code: \"OR\",
+    icon: \"📄\",
+    color: \"#006064\",
+    steps: [\"CSR\", \"ENCODING\", \"CASHIER\", \"RELEASING\"],
+    stepNames: [\"Document Checking\", \"Encoding\", \"Payment / Cashier\", \"Releasing\"],
+    checklist: {
+      CSR: [
+        \"Notarized Affidavit of Loss\",
+        \"PNP-HPG MV Clearance Certificate\",
+        \"Valid Government-Issued ID\",
+        \"Accomplished Application Form\",
+        \"Latest OR (if CR replacement only)\",
+        \"Police Report (if lost due to theft)\"
+      ],
+      ENCODING: [\"Replacement data encoded\", \"Loss details recorded in system\"],
+      CASHIER: [\"Replacement fees collected\", \"Official Receipt issued\"],
+      RELEASING: [\"Replacement OR/CR released\", \"Client signed receiving logbook\"]
+    }
+  },
+  CC: {
+    name: \"Change of MV Color\",
+    shortName: \"Color Change\",
+    code: \"CC\",
+    icon: \"🎨\",
+    color: \"#4527A0\",
+    steps: [\"CSR\", \"MV_INSPECTION\", \"ENCODING\", \"CASHIER\", \"RELEASING\"],
+    stepNames: [\"Document Checking\", \"MV Inspection\", \"Encoding\", \"Payment / Cashier\", \"Releasing\"],
+    checklist: {
+      CSR: [
+        \"Previous OR/CR\",
+        \"PNP-HPG MV Clearance Certificate\",
+        \"CTPL Insurance (updated)\",
+        \"Accomplished Application Form\",
+        \"Paint Shop Certification / Affidavit\"
+      ],
+      MV_INSPECTION: [\"New color verified on vehicle\", \"Chassis number verified\", \"Engine number verified\", \"Plate number verified\"],
+      ENCODING: [\"New color encoded in system\", \"Changes recorded\"],
+      CASHIER: [\"Fees collected\", \"Official Receipt issued\"],
+      RELEASING: [\"Updated OR/CR with new color released\", \"Client signed receiving logbook\"]
+    }
+  },
+  TO: {
+    name: \"Transfer of Ownership\",
+    shortName: \"Transfer of Ownership\",
+    code: \"TO\",
+    icon: \"🔄\",
+    color: \"#1B5E20\",
+    steps: [\"CSR\", \"MV_INSPECTION\", \"ENCODING\", \"CASHIER\", \"RELEASING\"],
+    stepNames: [\"Document Checking\", \"MV Inspection\", \"Encoding\", \"Payment / Cashier\", \"Releasing\"],
+    checklist: {
+      CSR: [
+        \"Notarized Deed of Sale\",
+        \"Original OR/CR (from seller)\",
+        \"PNP-HPG MV Clearance Certificate\",
+        \"CTPL Insurance (under new owner's name)\",
+        \"Valid ID of Buyer\",
+        \"Valid ID of Seller\",
+        \"Accomplished Application Form (new owner)\"
+      ],
+      MV_INSPECTION: [\"Vehicle physically inspected\", \"Chassis number verified\", \"Engine number verified\", \"Plate number matches\"],
+      ENCODING: [\"New owner's data encoded\", \"Transfer recorded in system\", \"Previous owner data cleared\"],
+      CASHIER: [\"Transfer fees collected\", \"Official Receipt issued\", \"OR number recorded\"],
+      RELEASING: [\"New CR under buyer's name released\", \"New OR issued\", \"Client signed receiving logbook\"]
+    }
+  }
+};
+
+const STATIONS = {
+  CSR:          { name: \"CSR – Document Checking\", short: \"CSR\", color: \"#1565C0\" },
+  ENCODING:     { name: \"Encoding Window\",          short: \"ENC\", color: \"#0277BD\" },
+  CASHIER:      { name: \"Cashier / Payment\",        short: \"CASH\", color: \"#00695C\" },
+  EXAM:         { name: \"Written Exam Room\",         short: \"EXAM\", color: \"#E65100\" },
+  PHOTO_BIO:    { name: \"Photo & Biometrics\",        short: \"PHO\", color: \"#6A1B9A\" },
+  MV_INSPECTION:{ name: \"MV Inspection\",             short: \"MVI\", color: \"#2E7D32\" },
+  RELEASING:    { name: \"Releasing Window\",          short: \"REL\", color: \"#4527A0\" }
+};
+
+// ─── IN-MEMORY STATE ──────────────────────────────────────────────────────────
+let state = {
+  tickets: [],
+  counters: {},
+  ticketCounters: {}
+};
+
+function resetState() {
+  state.tickets = [];
+  state.counters = {};
+  state.ticketCounters = {};
+  ['DL','MV','OR','CC','TO','PDL','PMV','POR','PCC','PTO'].forEach(k => state.ticketCounters[k] = 0);
+}
+resetState();
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function generateTicketNumber(txCode, isPriority) {
+  const prefix = isPriority ? `P${txCode}` : txCode;
+  if (!state.ticketCounters[prefix]) state.ticketCounters[prefix] = 0;
+  state.ticketCounters[prefix]++;
+  return `${prefix}-${String(state.ticketCounters[prefix]).padStart(3, '0')}`;
+}
+
+function getNextTicketForStation(stationType) {
+  const waiting = state.tickets.filter(t =>
+    t.status === 'WAITING' && t.steps[t.currentStepIndex] === stationType
+  );
+  const priority = waiting.filter(t => t.isPriority);
+  const regular  = waiting.filter(t => !t.isPriority);
+  return priority[0] || regular[0] || null;
+}
+
+function getQueueState() {
+  const active = state.tickets.filter(t => !['COMPLETED','NO_SHOW'].includes(t.status));
+  const nowServing = {};
+  Object.entries(state.counters).forEach(([wId, c]) => {
+    if (c.currentTicket) {
+      const ticket = state.tickets.find(t => t.id === c.currentTicket);
+      nowServing[wId] = { ...c, windowId: wId, ticket };
+    }
+  });
+  const waitingByStation = {};
+  Object.keys(STATIONS).forEach(st => {
+    waitingByStation[st] = active.filter(t => t.status === 'WAITING' && t.steps[t.currentStepIndex] === st).length;
+  });
+  return {
+    tickets: active,
+    allTickets: state.tickets,
+    nowServing,
+    waitingByStation,
+    counters: state.counters,
+    totalToday: state.tickets.length,
+    completedToday: state.tickets.filter(t => t.status === 'COMPLETED').length,
+    waitingToday: state.tickets.filter(t => t.status === 'WAITING').length,
+    servingToday: state.tickets.filter(t => t.status === 'SERVING').length
+  };
+}
+
+function broadcast() {
+  io.emit('queue-updated', getQueueState());
+}
+
+// ─── API ROUTES ───────────────────────────────────────────────────────────────
+
+// Get all config
+app.get('/api/config', (req, res) => res.json({ TRANSACTIONS, STATIONS }));
+app.get('/api/queue',  (req, res) => res.json(getQueueState()));
+
+// Create ticket
+app.post('/api/ticket', (req, res) => {
+  const { transactionCode, priorityType } = req.body;
+  if (!TRANSACTIONS[transactionCode]) return res.status(400).json({ error: 'Invalid transaction' });
+
+  const tx = TRANSACTIONS[transactionCode];
+  const isPriority = !!priorityType && priorityType !== 'REGULAR';
+  const ticketId = generateTicketNumber(transactionCode, isPriority);
+
+  const ticket = {
+    id: ticketId,
+    transactionCode,
+    transactionName: tx.name,
+    transactionShort: tx.shortName,
+    priority: priorityType || 'REGULAR',
+    isPriority,
+    currentStepIndex: 0,
+    steps: [...tx.steps],
+    stepNames: [...tx.stepNames],
+    status: 'WAITING',
+    currentWindow: null,
+    checklist: {},
+    createdAt: new Date().toISOString(),
+    history: []
+  };
+
+  state.tickets.push(ticket);
+  broadcast();
+
+  // Count waiting after this ticket
+  const posInQueue = state.tickets.filter(t =>
+    t.status === 'WAITING' &&
+    t.steps[t.currentStepIndex] === tx.steps[0] &&
+    t.createdAt <= ticket.createdAt
+  ).length;
+
+  res.json({ ticket, position: posInQueue });
+});
+
+// Counter: call next
+app.post('/api/counter/call-next', (req, res) => {
+  const { windowId, stationType } = req.body;
+  const next = getNextTicketForStation(stationType);
+  if (!next) return res.json({ ticket: null });
+
+  next.status = 'SERVING';
+  next.currentWindow = windowId;
+  next.calledAt = new Date().toISOString();
+  next.history.push({ action: 'CALLED', windowId, stationType, at: new Date().toISOString() });
+
+  state.counters[windowId] = { ...(state.counters[windowId] || {}), stationType, currentTicket: next.id, isOnline: true };
+
+  io.emit('ticket-called', { ticket: next, windowId, stationType });
+  broadcast();
+  res.json({ ticket: next });
+});
+
+// Counter: complete step
+app.post('/api/counter/complete', (req, res) => {
+  const { windowId, ticketId, checklistData } = req.body;
+  const ticket = state.tickets.find(t => t.id === ticketId);
+  if (!ticket) return res.status(404).json({ error: 'Not found' });
+
+  const currentStep = ticket.steps[ticket.currentStepIndex];
+  ticket.checklist[currentStep] = checklistData || {};
+  ticket.history.push({ action: 'STEP_DONE', step: currentStep, windowId, at: new Date().toISOString() });
+  ticket.currentStepIndex++;
+
+  if (ticket.currentStepIndex >= ticket.steps.length) {
+    ticket.status = 'COMPLETED';
+    ticket.completedAt = new Date().toISOString();
+  } else {
+    ticket.status = 'WAITING';
+  }
+
+  ticket.currentWindow = null;
+  if (state.counters[windowId]) state.counters[windowId].currentTicket = null;
+
+  broadcast();
+  res.json({ ticket });
+});
+
+// Counter: return (incomplete)
+app.post('/api/counter/return', (req, res) => {
+  const { windowId, ticketId, reason } = req.body;
+  const ticket = state.tickets.find(t => t.id === ticketId);
+  if (!ticket) return res.status(404).json({ error: 'Not found' });
+
+  ticket.status = 'ON_HOLD';
+  ticket.currentWindow = null;
+  ticket.history.push({ action: 'RETURNED', reason, windowId, at: new Date().toISOString() });
+  if (state.counters[windowId]) state.counters[windowId].currentTicket = null;
+
+  broadcast();
+  res.json({ ticket });
+});
+
+// Counter: no show
+app.post('/api/counter/no-show', (req, res) => {
+  const { windowId, ticketId } = req.body;
+  const ticket = state.tickets.find(t => t.id === ticketId);
+  if (!ticket) return res.status(404).json({ error: 'Not found' });
+
+  ticket.status = 'NO_SHOW';
+  ticket.currentWindow = null;
+  ticket.history.push({ action: 'NO_SHOW', windowId, at: new Date().toISOString() });
+  if (state.counters[windowId]) state.counters[windowId].currentTicket = null;
+
+  broadcast();
+  res.json({ ticket });
+});
+
+// Counter: recall (announce again)
+app.post('/api/counter/recall', (req, res) => {
+  const { windowId, ticketId } = req.body;
+  const ticket = state.tickets.find(t => t.id === ticketId);
+  if (!ticket) return res.status(404).json({ error: 'Not found' });
+
+  ticket.history.push({ action: 'RECALLED', windowId, at: new Date().toISOString() });
+  io.emit('ticket-called', { ticket, windowId, stationType: ticket.steps[ticket.currentStepIndex], isRecall: true });
+  res.json({ ticket });
+});
+
+// Reinstate on-hold
+app.post('/api/counter/reinstate', (req, res) => {
+  const { ticketId } = req.body;
+  const ticket = state.tickets.find(t => t.id === ticketId);
+  if (!ticket) return res.status(404).json({ error: 'Not found' });
+
+  ticket.status = 'WAITING';
+  ticket.history.push({ action: 'REINSTATED', at: new Date().toISOString() });
+  broadcast();
+  res.json({ ticket });
+});
+
+// Admin: reset
+app.post('/api/admin/reset', (req, res) => {
+  resetState();
+  broadcast();
+  io.emit('system-reset');
+  res.json({ success: true });
+});
+
+// Admin: report
+app.get('/api/admin/report', (req, res) => {
+  const report = {
+    total: state.tickets.length,
+    completed: state.tickets.filter(t => t.status === 'COMPLETED').length,
+    waiting:   state.tickets.filter(t => t.status === 'WAITING').length,
+    serving:   state.tickets.filter(t => t.status === 'SERVING').length,
+    noShow:    state.tickets.filter(t => t.status === 'NO_SHOW').length,
+    onHold:    state.tickets.filter(t => t.status === 'ON_HOLD').length,
+    byTransaction: {}
+  };
+  Object.keys(TRANSACTIONS).forEach(code => {
+    const tx = state.tickets.filter(t => t.transactionCode === code);
+    report.byTransaction[code] = {
+      name: TRANSACTIONS[code].name,
+      total: tx.length,
+      completed: tx.filter(t => t.status === 'COMPLETED').length,
+      waiting: tx.filter(t => t.status === 'WAITING').length,
+      noShow: tx.filter(t => t.status === 'NO_SHOW').length
+    };
+  });
+  res.json(report);
+});
+
+// ─── SOCKET.IO ────────────────────────────────────────────────────────────────
+io.on('connection', (socket) => {
+  socket.emit('queue-updated', getQueueState());
+
+  socket.on('counter-online', ({ windowId, stationType }) => {
+    state.counters[windowId] = {
+      ...(state.counters[windowId] || {}),
+      stationType,
+      currentTicket: state.counters[windowId]?.currentTicket || null,
+      isOnline: true,
+      socketId: socket.id
+    };
+    broadcast();
+  });
+
+  socket.on('disconnect', () => {
+    Object.entries(state.counters).forEach(([wId, c]) => {
+      if (c.socketId === socket.id) state.counters[wId].isOnline = false;
+    });
+    broadcast();
+  });
+});
+
+// ─── START ────────────────────────────────────────────────────────────────────
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, '0.0.0.0', () => {
+  console.log('');
+  console.log('  ╔══════════════════════════════════════════════╗');
+  console.log('  ║   LTO CALAPAN QUEUE MANAGEMENT SYSTEM       ║');
+  console.log('  ╠══════════════════════════════════════════════╣');
+  console.log(`  ║  Server running at http://0.0.0.0:${PORT}      ║`);
+  console.log('  ║                                              ║');
+  console.log('  ║  Pages:                                      ║');
+  console.log(`  ║  Kiosk   → http://<IP>:${PORT}/kiosk.html     ║`);
+  console.log(`  ║  Board   → http://<IP>:${PORT}/board.html     ║`);
+  console.log(`  ║  Counter → http://<IP>:${PORT}/counter.html   ║`);
+  console.log(`  ║  Admin   → http://<IP>:${PORT}/admin.html     ║`);
+  console.log('  ╚══════════════════════════════════════════════╝');
+  console.log('');
+});

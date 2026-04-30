@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LTO Calapan – Admin Panel</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --blue-dark:#0D47A1; --blue:#1565C0; --blue-light:#42A5F5; --blue-pale:#E3F2FD; --white:#fff; --gray-100:#F5F7FA; --gray-200:#E8ECF0; --gray-500:#6B7280; --gray-700:#374151; --success:#16A34A; --warning:#D97706; --danger:#DC2626; }
+  html, body { min-height:100%; font-family:'Poppins',sans-serif; background:var(--gray-100); color:var(--gray-700); }
+
+  .topbar { background:linear-gradient(90deg,var(--blue-dark),var(--blue)); color:white; padding:14px 32px; display:flex; align-items:center; justify-content:space-between; }
+  .topbar-brand { display:flex; align-items:center; gap:14px; }
+  .logo { width:48px; height:48px; background:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:900; color:var(--blue-dark); }
+  .topbar h1 { font-size:18px; font-weight:700; }
+  .topbar p  { font-size:12px; opacity:0.8; }
+  .topbar-right { display:flex; gap:10px; align-items:center; }
+  .topbar-clock { font-size:18px; font-weight:700; color:#FFD600; }
+
+  .admin-body { max-width:1200px; margin:0 auto; padding:28px 24px; }
+
+  /* STAT CARDS */
+  .stat-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:16px; margin-bottom:28px; }
+  .stat-card { background:white; border-radius:16px; padding:20px; box-shadow:0 2px 12px rgba(0,0,0,0.06); border-top:4px solid var(--blue); }
+  .stat-card .n { font-size:36px; font-weight:800; color:var(--blue); }
+  .stat-card .l { font-size:12px; color:var(--gray-500); font-weight:500; text-transform:uppercase; letter-spacing:0.5px; }
+  .stat-card.green  { border-top-color:var(--success); }  .stat-card.green .n  { color:var(--success); }
+  .stat-card.orange { border-top-color:var(--warning); }  .stat-card.orange .n { color:var(--warning); }
+  .stat-card.red    { border-top-color:var(--danger); }   .stat-card.red .n    { color:var(--danger); }
+  .stat-card.purple { border-top-color:#7C3AED; }         .stat-card.purple .n { color:#7C3AED; }
+
+  .section-title { font-size:16px; font-weight:700; color:var(--blue-dark); margin-bottom:14px; }
+
+  /* TX BREAKDOWN */
+  .tx-table { background:white; border-radius:16px; box-shadow:0 2px 12px rgba(0,0,0,0.06); overflow:hidden; margin-bottom:28px; }
+  table { width:100%; border-collapse:collapse; }
+  th { background:var(--blue); color:white; padding:12px 16px; text-align:left; font-size:13px; font-weight:600; }
+  td { padding:12px 16px; font-size:13px; border-bottom:1px solid var(--gray-200); }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:var(--blue-pale); }
+  .badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+  .badge-blue { background:var(--blue-pale); color:var(--blue-dark); }
+
+  /* TICKET TABLE */
+  .ticket-table-wrap { background:white; border-radius:16px; box-shadow:0 2px 12px rgba(0,0,0,0.06); overflow:hidden; margin-bottom:28px; }
+  .table-header { padding:16px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--gray-200); }
+  .filter-bar { display:flex; gap:8px; flex-wrap:wrap; }
+  .filter-btn { padding:6px 14px; border-radius:20px; font-size:12px; font-weight:600; border:2px solid var(--gray-200); background:var(--gray-100); color:var(--gray-700); cursor:pointer; font-family:'Poppins',sans-serif; }
+  .filter-btn.active { background:var(--blue); color:white; border-color:var(--blue); }
+  .status-chip { padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+  .s-WAITING   { background:#EFF6FF; color:var(--blue); }
+  .s-SERVING   { background:#DBEAFE; color:#1D4ED8; }
+  .s-COMPLETED { background:#F0FDF4; color:var(--success); }
+  .s-ON_HOLD   { background:#FFFBEB; color:var(--warning); }
+  .s-NO_SHOW   { background:#FEF2F2; color:var(--danger); }
+
+  /* ACTIONS BAR */
+  .action-bar { display:flex; gap:14px; margin-bottom:28px; flex-wrap:wrap; }
+  .btn { padding:12px 24px; border-radius:10px; font-size:14px; font-weight:600; border:none; cursor:pointer; font-family:'Poppins',sans-serif; transition:all 0.2s; display:inline-flex; align-items:center; gap:8px; }
+  .btn:hover { transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,0.15); }
+  .btn-danger { background:var(--danger); color:white; }
+  .btn-blue   { background:var(--blue); color:white; }
+  .btn-green  { background:var(--success); color:white; }
+
+  .windows-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:14px; margin-bottom:28px; }
+  .window-stat-card { background:white; border-radius:14px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,0.06); border-left:4px solid var(--blue); }
+  .ws-window { font-size:13px; font-weight:700; color:var(--blue-dark); }
+  .ws-station { font-size:11px; color:var(--gray-500); margin-bottom:8px; }
+  .ws-ticket { font-size:20px; font-weight:800; color:var(--blue); }
+  .ws-status { font-size:12px; display:inline-block; padding:3px 10px; border-radius:20px; background:var(--gray-100); color:var(--gray-500); margin-top:4px; }
+  .ws-status.online { background:#F0FDF4; color:var(--success); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="logo">LTO</div>
+    <div>
+      <h1>Admin Panel — LTO Calapan</h1>
+      <p>Queue Management System</p>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="topbar-clock" id="clock">--:--:--</div>
+  </div>
+</div>
+
+<div class="admin-body">
+
+  <!-- STAT CARDS -->
+  <div class="stat-row">
+    <div class="stat-card"><div class="n" id="st-total">0</div><div class="l">Total Tickets Today</div></div>
+    <div class="stat-card green"><div class="n" id="st-done">0</div><div class="l">Completed</div></div>
+    <div class="stat-card orange"><div class="n" id="st-waiting">0</div><div class="l">Waiting</div></div>
+    <div class="stat-card purple"><div class="n" id="st-serving">0</div><div class="l">Being Served</div></div>
+    <div class="stat-card red"><div class="n" id="st-noshow">0</div><div class="l">No Show</div></div>
+    <div class="stat-card orange"><div class="n" id="st-hold">0</div><div class="l">On Hold</div></div>
+  </div>
+
+  <!-- ACTION BAR -->
+  <div class="action-bar">
+    <button class="btn btn-blue" onclick="refreshReport()">🔄 Refresh</button>
+    <button class="btn btn-green" onclick="printReport()">🖨️ Print Report</button>
+    <button class="btn btn-danger" onclick="resetSystem()">⚠️ Reset System (End of Day)</button>
+  </div>
+
+  <!-- ACTIVE WINDOWS -->
+  <div class="section-title">🖥️ Active Windows</div>
+  <div class="windows-grid" id="windowsGrid"></div>
+
+  <!-- TRANSACTION BREAKDOWN -->
+  <div class="section-title">📊 Transaction Breakdown</div>
+  <div class="tx-table">
+    <table>
+      <thead><tr><th>Transaction</th><th>Code</th><th>Total</th><th>Completed</th><th>Waiting</th><th>No Show</th></tr></thead>
+      <tbody id="txTableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- ALL TICKETS -->
+  <div class="ticket-table-wrap">
+    <div class="table-header">
+      <div class="section-title" style="margin:0">🎫 All Tickets Today</div>
+      <div class="filter-bar">
+        <button class="filter-btn active" onclick="filterTickets('ALL',this)">All</button>
+        <button class="filter-btn" onclick="filterTickets('WAITING',this)">Waiting</button>
+        <button class="filter-btn" onclick="filterTickets('SERVING',this)">Serving</button>
+        <button class="filter-btn" onclick="filterTickets('COMPLETED',this)">Completed</button>
+        <button class="filter-btn" onclick="filterTickets('ON_HOLD',this)">On Hold</button>
+        <button class="filter-btn" onclick="filterTickets('NO_SHOW',this)">No Show</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>Ticket #</th><th>Transaction</th><th>Priority</th><th>Current Step</th><th>Status</th><th>Created</th><th>Window</th></tr></thead>
+      <tbody id="ticketTableBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+const socket = io();
+let TRANSACTIONS={}, STATIONS={}, queueState={}, allTickets=[], filterStatus='ALL';
+
+setInterval(() => { document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-PH'); }, 1000);
+
+fetch('/api/config').then(r=>r.json()).then(cfg => { TRANSACTIONS=cfg.TRANSACTIONS; STATIONS=cfg.STATIONS; });
+
+socket.on('queue-updated', data => {
+  queueState = data;
+  renderAll();
+});
+
+function renderAll() {
+  const qs = queueState;
+  const all = [...(qs.tickets||[]), ...(qs.allTickets||[])].filter((t,i,a)=>a.findIndex(x=>x.id===t.id)===i);
+  allTickets = all;
+
+  // Stats
+  document.getElementById('st-total').textContent   = qs.totalToday||0;
+  document.getElementById('st-done').textContent    = qs.completedToday||0;
+  document.getElementById('st-waiting').textContent = qs.waitingToday||0;
+  document.getElementById('st-serving').textContent = qs.servingToday||0;
+  document.getElementById('st-noshow').textContent  = all.filter(t=>t.status==='NO_SHOW').length;
+  document.getElementById('st-hold').textContent    = all.filter(t=>t.status==='ON_HOLD').length;
+
+  // Windows
+  const counters = qs.counters || {};
+  const ns = qs.nowServing || {};
+  const winGrid = document.getElementById('windowsGrid');
+  if (Object.keys(counters).length === 0) { winGrid.innerHTML = '<div style="opacity:0.5;font-size:14px;">No windows online yet.</div>'; }
+  else {
+    winGrid.innerHTML = Object.entries(counters).sort().map(([wId,c]) => {
+      const srv = ns[wId];
+      return `<div class="window-stat-card">
+        <div class="ws-window">Window ${wId}</div>
+        <div class="ws-station">${STATIONS[c.stationType]?.name||c.stationType||'—'}</div>
+        <div class="ws-ticket">${srv?.currentTicket||'—'}</div>
+        <span class="ws-status ${c.isOnline?'online':''}">${c.isOnline?'🟢 Online':'⚫ Offline'}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // TX breakdown
+  fetch('/api/admin/report').then(r=>r.json()).then(rpt => {
+    document.getElementById('txTableBody').innerHTML = Object.entries(rpt.byTransaction).map(([code,d])=>`
+      <tr><td>${d.name}</td><td><span class="badge badge-blue">${code}</span></td>
+      <td>${d.total}</td><td style="color:var(--success);font-weight:600">${d.completed}</td>
+      <td style="color:var(--warning);font-weight:600">${d.waiting}</td>
+      <td style="color:var(--danger);font-weight:600">${d.noShow}</td></tr>`).join('');
+  });
+
+  renderTicketTable();
+}
+
+function renderTicketTable() {
+  const filtered = filterStatus==='ALL' ? allTickets : allTickets.filter(t=>t.status===filterStatus);
+  document.getElementById('ticketTableBody').innerHTML = filtered.slice().reverse().map(t => `
+    <tr><td style="font-weight:700;color:var(--blue-dark)">${t.id}</td>
+    <td>${TRANSACTIONS[t.transactionCode]?.shortName||t.transactionCode}</td>
+    <td>${t.isPriority?`<span class="badge" style="background:#FEF3C7;color:#92400E">⭐ ${t.priority}</span>`:'Regular'}</td>
+    <td>${t.stepNames?.[t.currentStepIndex]||'Completed'}</td>
+    <td><span class="status-chip s-${t.status}">${t.status.replace('_',' ')}</span></td>
+    <td>${new Date(t.createdAt).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'})}</td>
+    <td>${t.currentWindow?`Window ${t.currentWindow}`:'—'}</td></tr>`).join('') ||
+    '<tr><td colspan="7" style="text-align:center;opacity:0.5;padding:20px">No tickets</td></tr>';
+}
+
+function filterTickets(status, btn) {
+  filterStatus = status;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTicketTable();
+}
+
+function refreshReport() { socket.emit('request-refresh'); fetch('/api/queue').then(r=>r.json()).then(d=>{queueState=d;renderAll();}); }
+
+function resetSystem() {
+  if (!confirm('⚠️ This will CLEAR ALL TICKETS and RESET ALL COUNTERS.\n\nThis action cannot be undone.\n\nProceed?')) return;
+  fetch('/api/admin/reset',{method:'POST'}).then(()=>alert('System reset successfully.'));
+}
+
+function printReport() { window.print(); }
+
+// Initial load
+fetch('/api/queue').then(r=>r.json()).then(d=>{queueState=d;renderAll();});
+</script>
+</body>
+</html>

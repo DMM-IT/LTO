@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><title>LTO Calapan – Routing Window</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#0B2A5C;--blue:#1565C0;--purple:#6D28D9;--light:#42A5F5;--pale:#E3F2FD;--bg:#F3EEFF;--white:#fff;--g100:#F5F7FA;--g200:#E8ECF0;--g500:#6B7280;--g700:#374151;--green:#16A34A;--warn:#D97706;--red:#DC2626;--gold:#F59E0B}
+html,body{min-height:100%;font-family:'Poppins',sans-serif;background:var(--bg);color:var(--g700)}
+
+.setup-bg{position:fixed;inset:0;background:linear-gradient(150deg,var(--navy),var(--purple));display:flex;align-items:center;justify-content:center;z-index:1000}
+.setup-box{background:var(--white);border-radius:24px;padding:40px;width:460px;max-width:95vw;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.3)}
+.setup-logo{width:68px;height:68px;border-radius:50%;background:var(--purple);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:30px;color:var(--white)}
+.setup-box h2{font-size:22px;font-weight:700;color:var(--navy)}
+.setup-box p{font-size:13px;color:var(--g500);margin:6px 0 26px}
+.fg{margin-bottom:14px;text-align:left}
+.fg label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}
+.fg select,.fg input{width:100%;padding:12px 14px;border-radius:10px;font-size:14px;border:2px solid var(--g200);font-family:'Poppins',sans-serif;color:var(--g700);outline:none;transition:border .2s;background:var(--white)}
+.fg select:focus,.fg input:focus{border-color:var(--purple)}
+.btn-start{width:100%;padding:14px;background:var(--purple);color:var(--white);border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif}
+
+.layout{display:none;flex-direction:column;min-height:100vh}
+.topbar{background:linear-gradient(90deg,var(--navy),var(--purple));color:var(--white);padding:11px 22px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 10px rgba(0,0,0,.2)}
+.tb-l{display:flex;align-items:center;gap:12px}
+.tb-logo{width:38px;height:38px;background:var(--white);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px}
+.tb-t{font-size:13px;font-weight:700}.tb-s{font-size:10px;opacity:.7}
+.tb-r{display:flex;align-items:center;gap:8px}
+.badge{background:rgba(255,255,255,.2);border-radius:8px;padding:4px 11px;font-size:11px;font-weight:700}
+.tb-clk{font-size:15px;font-weight:700;color:#FFD600}
+.btn-out{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.28);color:var(--white);padding:5px 13px;border-radius:8px;cursor:pointer;font-size:11px;font-family:'Poppins',sans-serif}
+
+.content{padding:20px;display:grid;grid-template-columns:1fr 340px;gap:18px}
+
+/* LEFT */
+.panel{background:var(--white);border-radius:16px;box-shadow:0 3px 14px rgba(0,0,0,.07);overflow:hidden}
+.panel-hdr{padding:14px 20px;background:var(--purple);color:var(--white)}
+.panel-hdr h3{font-size:14px;font-weight:700}
+.panel-body{padding:18px 20px}
+
+.search-wrap{display:flex;gap:10px;margin-bottom:18px}
+.search-input{flex:1;padding:12px 16px;border-radius:11px;border:2px solid var(--g200);font-size:15px;font-family:'Poppins',sans-serif;font-weight:600;letter-spacing:1.5px;outline:none;text-transform:uppercase}
+.search-input:focus{border-color:var(--purple)}
+.btn-search{padding:12px 20px;background:var(--purple);color:var(--white);border:none;border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif}
+.btn-search:hover{background:#5B21B6}
+
+/* TICKET DETAIL */
+.td-box{background:var(--g100);border-radius:13px;padding:18px;margin-bottom:14px}
+.td-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.td-num{font-size:52px;font-weight:900;color:var(--navy);letter-spacing:2px;line-height:1}
+.td-tx{font-size:14px;font-weight:700;color:var(--purple);margin-top:4px}
+.td-cat{font-size:11px;color:var(--g500)}
+.status-badge{font-size:11px;font-weight:700;padding:5px 13px;border-radius:20px}
+.s-WAITING{background:#EFF6FF;color:var(--blue)}.s-SERVING{background:#DBEAFE;color:var(--navy)}
+.s-DONE{background:#F0FDF4;color:var(--green)}.s-ON_HOLD{background:#FFFBEB;color:var(--warn)}.s-NO_SHOW{background:#FEF2F2;color:var(--red)}
+.prio-b{background:#FEF3C7;color:#92400E;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;display:inline-block;margin-bottom:10px}
+
+/* STEP FLOW */
+.step-flow{margin:14px 0}
+.sf-row{display:flex;align-items:stretch;gap:12px}
+.sf-left{display:flex;flex-direction:column;align-items:center;width:30px}
+.sf-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;z-index:1}
+.sf-line{flex:1;width:2px;background:var(--g200);margin:3px 0}
+.sf-dot.done{background:var(--green);color:var(--white)}
+.sf-dot.current{background:var(--purple);color:var(--white);box-shadow:0 0 0 4px rgba(109,40,217,.2)}
+.sf-dot.next{background:var(--g200);color:var(--g500)}
+.sf-content{flex:1;padding:5px 0 14px}
+.sf-name{font-size:13px;font-weight:700}
+.sf-name.done{color:var(--green)}.sf-name.current{color:var(--purple)}.sf-name.next{color:var(--g500);opacity:.6}
+.sf-tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-top:3px;display:inline-block}
+.sf-tag.done{background:#F0FDF4;color:var(--green)}.sf-tag.current{background:rgba(109,40,217,.1);color:var(--purple)}
+
+/* ROUTING BOX */
+.route-box{background:var(--pale);border:2px solid var(--light);border-radius:13px;padding:16px;margin-top:14px}
+.route-box h4{font-size:12px;font-weight:800;color:var(--navy);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
+.next-step-preview{background:var(--white);border-radius:10px;padding:13px;margin-bottom:12px;display:flex;align-items:center;gap:12px}
+.nsp-arrow{font-size:26px}
+.nsp-info .k{font-size:10px;color:var(--g500);font-weight:600}
+.nsp-info .v{font-size:15px;font-weight:800;color:var(--purple)}
+.notes-area{width:100%;padding:10px 13px;border-radius:9px;border:2px solid var(--g200);font-size:12px;font-family:'Poppins',sans-serif;outline:none;margin-bottom:11px;resize:none}
+.notes-area:focus{border-color:var(--purple)}
+.route-btns{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.btn-fwd{grid-column:1/-1;padding:14px;background:var(--purple);color:var(--white);border:none;border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif}
+.btn-fwd:hover{background:#5B21B6}
+.btn-back{padding:11px;background:#FEF2F2;color:var(--red);border:2px solid #FECACA;border-radius:11px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif}
+.btn-reinstate{padding:11px;background:#F0FDF4;color:var(--green);border:2px solid #BBF7D0;border-radius:11px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif}
+.btn-mark-done{grid-column:1/-1;padding:13px;background:#F0FDF4;color:var(--green);border:2px solid #BBF7D0;border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif}
+
+/* HISTORY */
+.hist-item{background:var(--g100);border-radius:9px;padding:9px 13px;margin-bottom:7px;border-left:3px solid var(--light)}
+.hist-item.STEP_DONE,.hist-item.ROUTED_FWD{border-left-color:var(--green)}
+.hist-item.CALLED{border-left-color:var(--blue)}.hist-item.ON_HOLD{border-left-color:var(--warn)}.hist-item.NO_SHOW,.hist-item.ROUTED_BACK{border-left-color:var(--red)}
+.hist-action{font-size:11px;font-weight:700;color:var(--navy)}
+.hist-meta{font-size:10px;color:var(--g500);margin-top:2px}
+
+/* RIGHT SIDEBAR - STATION QUEUES */
+.station-panels{display:flex;flex-direction:column;gap:12px}
+.st-panel{background:var(--white);border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.06);overflow:hidden;border-left:4px solid var(--blue)}
+.st-ph{display:flex;justify-content:space-between;align-items:center;padding:11px 15px;border-bottom:1px solid var(--g200)}
+.st-ph .name{font-size:12px;font-weight:700;color:var(--navy)}
+.st-ph .count{font-size:22px;font-weight:900;color:var(--blue)}
+.st-list{padding:9px 15px;display:flex;flex-wrap:wrap;gap:5px}
+.st-chip{font-size:11px;font-weight:700;padding:4px 9px;border-radius:20px;cursor:pointer;background:var(--g100);border:1px solid var(--g200);transition:all .2s;color:var(--g700)}
+.st-chip:hover{background:var(--pale);border-color:var(--light);color:var(--navy)}
+.st-chip.p{background:#FEF3C7;color:#92400E;border-color:#FDE68A}
+.st-empty{padding:9px 15px;font-size:11px;opacity:.35}
+
+/* HOLD LIST */
+.hold-section{background:var(--white);border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.06);overflow:hidden;border-left:4px solid var(--warn)}
+.hold-item{padding:10px 14px;border-bottom:1px solid var(--g200);cursor:pointer;transition:background .2s}
+.hold-item:hover{background:var(--g100)}
+.hold-item:last-child{border-bottom:none}
+.hold-num{font-size:14px;font-weight:800;color:var(--navy)}
+.hold-reason{font-size:11px;color:var(--warn);margin-top:2px}
+.hold-tx{font-size:11px;color:var(--g500)}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a1a2e;color:var(--white);padding:12px 24px;border-radius:11px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;z-index:999;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.no-ticket{text-align:center;padding:40px 20px;color:var(--g500)}
+.no-ticket .ico{font-size:48px;margin-bottom:14px}
+.no-ticket p{font-size:14px}
+.no-ticket small{font-size:12px;opacity:.7}
+</style>
+</head>
+<body>
+
+<div class="setup-bg" id="setupBg">
+  <div class="setup-box">
+    <div class="setup-logo">🔁</div>
+    <h2>Routing / Step Window</h2>
+    <p>Use this to look up, forward, or return tickets between processing steps</p>
+    <div class="fg"><label>Operator / Station Name</label>
+      <input id="s-op" type="text" placeholder="e.g. Routing Supervisor, CSR Desk 1"></div>
+    <div class="fg"><label>Your Primary Station (optional)</label>
+      <select id="s-st"><option value="">— All Stations —</option></select></div>
+    <button class="btn-start" onclick="login()">Open Routing Window</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="layout" id="mainLayout">
+  <div class="topbar">
+    <div class="tb-l">
+      <div class="tb-logo">🔁</div>
+      <div><div class="tb-t">Routing / Step Window</div><div class="tb-s">LTO Calapan Queue Management System</div></div>
+    </div>
+    <div class="tb-r">
+      <div class="badge" id="opBadge">Operator —</div>
+      <div class="tb-clk" id="clock">--:--</div>
+      <button class="btn-out" onclick="logout()">🔓 Exit</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- LEFT: LOOKUP + TICKET DETAIL -->
+    <div>
+      <div class="panel">
+        <div class="panel-hdr"><h3>🔍 Ticket Lookup & Routing</h3></div>
+        <div class="panel-body">
+          <div class="search-wrap">
+            <input class="search-input" id="searchInput" type="text" placeholder="Enter ticket number (e.g. A-001)" maxlength="10"
+              onkeydown="if(event.key==='Enter')lookup()">
+            <button class="btn-search" onclick="lookup()">Look Up</button>
+          </div>
+          <div id="ticketDetail">
+            <div class="no-ticket">
+              <div class="ico">🔁</div>
+              <p>Search for a ticket number above</p>
+              <small>Or click any ticket chip on the right panel to load it</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HISTORY -->
+      <div class="panel" style="margin-top:16px" id="histPanel" style="display:none">
+        <div class="panel-hdr"><h3>📜 Ticket History</h3></div>
+        <div class="panel-body" id="histBody"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: STATION QUEUES + HOLD LIST -->
+    <div>
+      <div class="station-panels" id="stationPanels"></div>
+      <div class="hold-section" id="holdSection" style="margin-top:14px;display:none">
+        <div class="st-ph"><span class="name">⏸ On Hold Tickets</span><span class="count" id="holdCount">0</span></div>
+        <div id="holdList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const socket=io();
+let CFG={CATEGORIES:{},TRANSACTION_TYPES:{},STATIONS:{},PRIORITY_LEVELS:{}};
+let opId=null, primaryStation=null;
+let QS={};
+let currentTicket=null;
+
+setInterval(()=>{const e=document.getElementById('clock');if(e)e.textContent=new Date().toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});},1000);
+
+fetch('/api/config').then(r=>r.json()).then(cfg=>{
+  CFG=cfg;
+  const sel=document.getElementById('s-st');
+  Object.entries(cfg.STATIONS).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.name;sel.appendChild(o);});
+});
+
+socket.on('queue:update',s=>{QS=s;renderRight();if(currentTicket){const up=[...(s.tickets||[]),...(s.allTickets||[])].find(t=>t.id===currentTicket.id);if(up){currentTicket=up;renderDetail();}}});
+socket.on('queue:reset',()=>{currentTicket=null;renderDetail();});
+
+function login(){
+  const op=document.getElementById('s-op').value.trim();
+  const st=document.getElementById('s-st').value;
+  if(!op){alert('Please enter your operator name.');return;}
+  opId=op;primaryStation=st||null;
+  document.getElementById('setupBg').style.display='none';
+  document.getElementById('mainLayout').style.display='flex';
+  document.getElementById('opBadge').textContent=op;
+  fetch('/api/queue').then(r=>r.json()).then(s=>{QS=s;renderRight();});
+}
+
+function logout(){currentTicket=null;opId=null;document.getElementById('mainLayout').style.display='none';document.getElementById('setupBg').style.display='flex';}
+
+function lookup(){
+  const raw=document.getElementById('searchInput').value.trim().toUpperCase();
+  if(!raw){showToast('Please enter a ticket number.');return;}
+  fetch(`/api/tickets/${raw}`).then(r=>r.ok?r.json():null).then(t=>{
+    if(!t){showToast(`Ticket "${raw}" not found.`);return;}
+    currentTicket=t;renderDetail();renderHist();
+  }).catch(()=>showToast('Ticket not found.'));
+}
+
+function loadTicket(id){
+  document.getElementById('searchInput').value=id;
+  fetch(`/api/tickets/${id}`).then(r=>r.ok?r.json():null).then(t=>{
+    if(!t){showToast('Ticket not found.');return;}
+    currentTicket=t;renderDetail();renderHist();
+  });
+}
+
+function forward(){
+  if(!currentTicket) return;
+  if(!confirm(`Forward ticket ${currentTicket.id} to the next step?`)) return;
+  const notes=document.getElementById('routeNotes')?.value||'';
+  fetch('/api/routing/forward',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({ticketId:currentTicket.id,notes,operatorId:opId})})
+  .then(r=>r.json()).then(d=>{
+    currentTicket=d.ticket;
+    renderDetail();renderHist();
+    if(d.ticket.status==='DONE') showToast(`✅ Ticket ${d.ticket.id} fully completed!`,'#16A34A');
+    else showToast(`✅ Forwarded to: ${d.ticket.stepLabels?.[d.ticket.currentStep]||'Next Step'}`,'#16A34A');
+  });
+}
+
+function returnStep(){
+  if(!currentTicket) return;
+  if(currentTicket.currentStep===0){showToast('Already at first step.');return;}
+  if(!confirm(`Return ticket ${currentTicket.id} to the previous step?`)) return;
+  const reason=prompt('Reason for returning:','Incomplete requirements')||'Incomplete requirements';
+  fetch('/api/routing/return',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({ticketId:currentTicket.id,reason,operatorId:opId})})
+  .then(r=>r.json()).then(d=>{currentTicket=d.ticket;renderDetail();renderHist();showToast(`↩ Returned to: ${d.ticket.stepLabels?.[d.ticket.currentStep]}`,'#D97706');});
+}
+
+function reinstate(){
+  if(!currentTicket) return;
+  fetch('/api/routing/reinstate',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({ticketId:currentTicket.id})})
+  .then(r=>r.json()).then(d=>{currentTicket=d.ticket;renderDetail();renderHist();showToast('✅ Ticket reinstated to WAITING','#16A34A');});
+}
+
+function renderDetail(){
+  const el=document.getElementById('ticketDetail');
+  const t=currentTicket;
+  if(!t){
+    el.innerHTML=`<div class="no-ticket"><div class="ico">🔁</div><p>Search for a ticket number above</p><small>Or click any ticket chip on the right panel</small></div>`;
+    return;
+  }
+  const isLast=t.currentStep>=t.steps.length-1;
+  const isDone=t.status==='DONE';
+  const isHold=t.status==='ON_HOLD';
+  const canFwd=!isDone&&t.status!=='NO_SHOW';
+  const canBack=t.currentStep>0&&!isDone&&t.status!=='NO_SHOW';
+  const nextStep=!isDone&&t.currentStep+1<t.steps.length?{step:t.steps[t.currentStep+1],label:t.stepLabels[t.currentStep+1]}:null;
+
+  let h=`<div class="td-box">
+    <div class="td-top">
+      <div><div class="td-num">${t.id}</div><div class="td-tx">${t.transactionName}</div><div class="td-cat">${t.categoryName||t.category}</div></div>
+      <span class="status-badge s-${t.status}">${t.status.replace('_',' ')}</span>
+    </div>
+    ${t.isPriority?`<div class="prio-b">⭐ ${t.priorityLabel||t.priority}</div>`:''}
+    ${isHold&&t.holdReason?`<div style="background:#FFF9E6;border:1px solid #FDE68A;border-radius:8px;padding:8px 12px;font-size:12px;color:#92400E;margin-bottom:10px"><strong>On Hold:</strong> ${t.holdReason}</div>`:''}
+  </div>`;
+
+  // Step flow
+  h+=`<div class="step-flow">`;
+  t.steps.forEach((s,i)=>{
+    const cls=i<t.currentStep?'done':i===t.currentStep?'current':'next';
+    const ico=cls==='done'?'✓':cls==='current'?'▶':i+1;
+    const isLastItem=i===t.steps.length-1;
+    h+=`<div class="sf-row"><div class="sf-left"><div class="sf-dot ${cls}">${ico}</div>${!isLastItem?'<div class="sf-line"></div>':''}</div>
+      <div class="sf-content"><div class="sf-name ${cls}">${t.stepLabels[i]}</div>
+      ${cls==='done'?`<span class="sf-tag done">✓ Completed</span>`:cls==='current'?`<span class="sf-tag current">▶ Current</span>`:''}</div></div>`;
+  });
+  h+=`</div>`;
+
+  // Routing actions
+  if(!isDone&&t.status!=='NO_SHOW'){
+    h+=`<div class="route-box"><h4>🔁 Routing Actions</h4>`;
+    if(nextStep){
+      h+=`<div class="next-step-preview"><div class="nsp-arrow">→</div><div class="nsp-info"><div class="k">Next Step After Forwarding:</div><div class="v">${nextStep.label}</div></div></div>`;
+    } else {
+      h+=`<div class="next-step-preview"><div class="nsp-arrow">✅</div><div class="nsp-info"><div class="k">Final Step</div><div class="v">Forwarding will COMPLETE this ticket</div></div></div>`;
+    }
+    h+=`<textarea class="notes-area" id="routeNotes" rows="2" placeholder="Optional notes (e.g. documents verified, exam passed)"></textarea>`;
+    h+=`<div class="route-btns">`;
+    if(canFwd) h+=`<button class="btn-fwd" onclick="forward()">▶ Forward to ${nextStep?nextStep.label:'Complete'}</button>`;
+    if(canBack) h+=`<button class="btn-back" onclick="returnStep()">↩ Return to Previous Step</button>`;
+    if(isHold)  h+=`<button class="btn-reinstate" onclick="reinstate()">✅ Reinstate (Resume Queue)</button>`;
+    h+=`</div></div>`;
+  } else if(isDone){
+    h+=`<div style="background:#F0FDF4;border:2px solid #BBF7D0;border-radius:13px;padding:16px;text-align:center;color:var(--green)"><div style="font-size:32px">✅</div><div style="font-size:16px;font-weight:700;margin-top:6px">Transaction Completed</div><div style="font-size:12px;opacity:.75;margin-top:4px">Completed at ${t.completedAt?new Date(t.completedAt).toLocaleTimeString('en-PH'):'—'}</div></div>`;
+  }
+
+  el.innerHTML=h;
+}
+
+function renderHist(){
+  const t=currentTicket;
+  const hp=document.getElementById('histPanel');
+  const hb=document.getElementById('histBody');
+  if(!t||!t.history?.length){hp.style.display='none';return;}
+  hp.style.display='block';
+  hb.innerHTML=t.history.slice().reverse().map(h=>`
+    <div class="hist-item ${h.action}">
+      <div class="hist-action">${h.action.replace('_',' ')}${h.stepLabel?` — ${h.stepLabel}`:h.step?` — ${h.step}`:''}</div>
+      <div class="hist-meta">${h.windowId?`Window ${h.windowId} · `:h.operatorId?`${h.operatorId} · `:''}${new Date(h.at).toLocaleTimeString('en-PH')}${h.notes?` · "${h.notes}"`:h.reason?` · "${h.reason}"`:''}</div>
+    </div>`).join('');
+}
+
+function renderRight(){
+  const stations=document.getElementById('stationPanels');
+  const tickets=QS.tickets||[];
+  const allT=QS.allTickets||[];
+  const byStation=QS.byStation||{};
+
+  let html='';
+  Object.entries(CFG.STATIONS||{}).forEach(([code,st])=>{
+    const waiting=tickets.filter(t=>t.status==='WAITING'&&t.steps[t.currentStep]===code);
+    const serving=tickets.filter(t=>t.status==='SERVING'&&t.steps[t.currentStep]===code);
+    if(!waiting.length&&!serving.length&&!byStation[code]?.count) return;
+    html+=`<div class="st-panel" style="border-left-color:${st.color}">
+      <div class="st-ph"><span class="name">${st.icon||''} ${st.name}</span><span class="count" style="color:${st.color}">${waiting.length}</span></div>
+      <div class="st-list">`;
+    serving.forEach(t=>{html+=`<span class="st-chip" style="background:#DBEAFE;color:#1D4ED8" onclick="loadTicket('${t.id}')">${t.id} ▶</span>`;});
+    waiting.forEach(t=>{html+=`<span class="st-chip${t.isPriority?' p':''}" onclick="loadTicket('${t.id}')">${t.id}</span>`;});
+    if(!waiting.length&&!serving.length) html+=`<span class="st-empty">Clear</span>`;
+    html+=`</div></div>`;
+  });
+  stations.innerHTML=html||'<div style="opacity:.4;font-size:13px;padding:20px;text-align:center">No active queues</div>';
+
+  // On-hold section
+  const held=[...tickets,...allT].filter((t,i,a)=>a.findIndex(x=>x.id===t.id)===i&&t.status==='ON_HOLD');
+  const hs=document.getElementById('holdSection');
+  if(held.length){
+    hs.style.display='block';
+    document.getElementById('holdCount').textContent=held.length;
+    document.getElementById('holdList').innerHTML=held.map(t=>`
+      <div class="hold-item" onclick="loadTicket('${t.id}')">
+        <div class="hold-num">${t.id}</div>
+        <div class="hold-tx">${t.transactionName||t.transactionCode}</div>
+        <div class="hold-reason">${t.holdReason||'On Hold'}</div>
+      </div>`).join('');
+  } else { hs.style.display='none'; }
+}
+
+function showToast(msg,bg='#1a1a2e'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.background=bg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+</script>
+</body>
+</html>
