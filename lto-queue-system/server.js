@@ -6,9 +6,13 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
+  cors: {
+    origin: "https://lto-pink.vercel.app",
+    methods: ["GET", "POST"]
+  },
   pingInterval: 20000,
   pingTimeout: 5000,
-  transports: ['websocket']
+  transports: ['websocket', 'polling']
 });
 
 app.use(express.json());
