@@ -232,7 +232,7 @@ function updateClock() {
 setInterval(updateClock, 1000); updateClock();
 
 // Load config
-fetch('/api/config').then(r=>r.json()).then(cfg => {
+fetch('https://lto-production.up.railway.app/api/config').then(r=>r.json()).then(cfg => {
   TRANSACTIONS = cfg.TRANSACTIONS;
   STATIONS = cfg.STATIONS;
   renderBoard();

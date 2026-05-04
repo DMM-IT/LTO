@@ -147,7 +147,7 @@ let TRANSACTIONS={}, STATIONS={}, queueState={}, allTickets=[], filterStatus='AL
 
 setInterval(() => { document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-PH'); }, 1000);
 
-fetch('/api/config').then(r=>r.json()).then(cfg => { TRANSACTIONS=cfg.TRANSACTIONS; STATIONS=cfg.STATIONS; });
+fetch('https://lto-production.up.railway.app/api/config').then(r=>r.json()).then(cfg => { TRANSACTIONS=cfg.TRANSACTIONS; STATIONS=cfg.STATIONS; });
 
 socket.on('queue-updated', data => {
   queueState = data;
@@ -185,7 +185,7 @@ function renderAll() {
   }
 
   // TX breakdown
-  fetch('/api/admin/report').then(r=>r.json()).then(rpt => {
+  fetch('https://lto-production.up.railway.app/api/admin/report').then(r=>r.json()).then(rpt => {
     document.getElementById('txTableBody').innerHTML = Object.entries(rpt.byTransaction).map(([code,d])=>`
       <tr><td>${d.name}</td><td><span class="badge badge-blue">${code}</span></td>
       <td>${d.total}</td><td style="color:var(--success);font-weight:600">${d.completed}</td>
@@ -216,17 +216,17 @@ function filterTickets(status, btn) {
   renderTicketTable();
 }
 
-function refreshReport() { socket.emit('request-refresh'); fetch('/api/queue').then(r=>r.json()).then(d=>{queueState=d;renderAll();}); }
+function refreshReport() { socket.emit('request-refresh'); fetch('https://lto-production.up.railway.app/api/queue').then(r=>r.json()).then(d=>{queueState=d;renderAll();}); }
 
 function resetSystem() {
   if (!confirm('⚠️ This will CLEAR ALL TICKETS and RESET ALL COUNTERS.\n\nThis action cannot be undone.\n\nProceed?')) return;
-  fetch('/api/admin/reset',{method:'POST'}).then(()=>alert('System reset successfully.'));
+  fetch('https://lto-production.up.railway.app/api/admin/reset',{method:'POST'}).then(()=>alert('System reset successfully.'));
 }
 
 function printReport() { window.print(); }
 
 // Initial load
-fetch('/api/queue').then(r=>r.json()).then(d=>{queueState=d;renderAll();});
+fetch('https://lto-production.up.railway.app/api/queue').then(r=>r.json()).then(d=>{queueState=d;renderAll();});
 </script>
 </body>
 </html>

@@ -202,7 +202,7 @@ let currentTicket=null;
 
 setInterval(()=>{const e=document.getElementById('clock');if(e)e.textContent=new Date().toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});},1000);
 
-fetch('/api/config').then(r=>r.json()).then(cfg=>{
+fetch('https://lto-production.up.railway.app/api/config').then(r=>r.json()).then(cfg=>{
   CFG=cfg;
   const sel=document.getElementById('s-st');
   Object.entries(cfg.STATIONS).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.name;sel.appendChild(o);});
@@ -219,7 +219,7 @@ function login(){
   document.getElementById('setupBg').style.display='none';
   document.getElementById('mainLayout').style.display='flex';
   document.getElementById('opBadge').textContent=op;
-  fetch('/api/queue').then(r=>r.json()).then(s=>{QS=s;renderRight();});
+  fetch('https://lto-production.up.railway.app/api/queue').then(r=>r.json()).then(s=>{QS=s;renderRight();});
 }
 
 function logout(){currentTicket=null;opId=null;document.getElementById('mainLayout').style.display='none';document.getElementById('setupBg').style.display='flex';}
@@ -245,7 +245,7 @@ function forward(){
   if(!currentTicket) return;
   if(!confirm(`Forward ticket ${currentTicket.id} to the next step?`)) return;
   const notes=document.getElementById('routeNotes')?.value||'';
-  fetch('/api/routing/forward',{method:'POST',headers:{'Content-Type':'application/json'},
+  fetch('https://lto-production.up.railway.app/api/routing/forward',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({ticketId:currentTicket.id,notes,operatorId:opId})})
   .then(r=>r.json()).then(d=>{
     currentTicket=d.ticket;
@@ -260,14 +260,14 @@ function returnStep(){
   if(currentTicket.currentStep===0){showToast('Already at first step.');return;}
   if(!confirm(`Return ticket ${currentTicket.id} to the previous step?`)) return;
   const reason=prompt('Reason for returning:','Incomplete requirements')||'Incomplete requirements';
-  fetch('/api/routing/return',{method:'POST',headers:{'Content-Type':'application/json'},
+  fetch('https://lto-production.up.railway.app/api/routing/return',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({ticketId:currentTicket.id,reason,operatorId:opId})})
   .then(r=>r.json()).then(d=>{currentTicket=d.ticket;renderDetail();renderHist();showToast(`↩ Returned to: ${d.ticket.stepLabels?.[d.ticket.currentStep]}`,'#D97706');});
 }
 
 function reinstate(){
   if(!currentTicket) return;
-  fetch('/api/routing/reinstate',{method:'POST',headers:{'Content-Type':'application/json'},
+  fetch('https://lto-production.up.railway.app/api/routing/reinstate',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({ticketId:currentTicket.id})})
   .then(r=>r.json()).then(d=>{currentTicket=d.ticket;renderDetail();renderHist();showToast('✅ Ticket reinstated to WAITING','#16A34A');});
 }

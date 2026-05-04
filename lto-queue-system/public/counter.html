@@ -251,7 +251,7 @@ setInterval(() => document.getElementById('clock').textContent = new Date().toLo
 
 // Load config
 async function loadConfig() {
-  const res = await fetch('/api/config');
+  const res = await fetch('https://lto-production.up.railway.app/api/config');
   config = await res.json();
   populateStations();
 }
@@ -304,7 +304,7 @@ socket.on('queue-updated', data => {
 });
 
 async function loadQueueState() {
-  const res = await fetch('/api/queue');
+  const res = await fetch('https://lto-production.up.railway.app/api/queue');
   state.queueState = await res.json();
   renderInterface();
 }
@@ -452,7 +452,7 @@ function toggleCheck(key) {
 }
 
 function callNextTicket() {
-  fetch('/api/counter/call-next', {
+  fetch('https://lto-production.up.railway.app/api/counter/call-next', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({ windowId: currentSetup.windowId, stationType: currentSetup.stationType })
@@ -468,7 +468,7 @@ function callNextTicket() {
 function completeCurrentStep() {
   if (!currentTicket) return;
   
-  fetch('/api/counter/complete', {
+  fetch('https://lto-production.up.railway.app/api/counter/complete', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({
