@@ -142,7 +142,7 @@
 </div>
 
 <script>
-const socket = io();
+const socket = io("https://lto-production.up.railway.app");
 let TRANSACTIONS={}, STATIONS={}, queueState={}, allTickets=[], filterStatus='ALL';
 
 setInterval(() => { document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-PH'); }, 1000);

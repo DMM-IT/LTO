@@ -242,7 +242,7 @@
 </div>
 
 <script>
-const socket = io();
+const socket = io("https://lto-production.up.railway.app");
 let config = {}, state = { tickets: [], counters: {}, queueState: {} };
 let currentSetup = { windowId: null, stationType: null, staffName: '' };
 let currentTicket = null, currentChecklist = {}, activeTab = 'myqueue';
