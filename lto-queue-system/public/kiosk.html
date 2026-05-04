@@ -240,7 +240,7 @@ setInterval(updateClock, 1000); updateClock();
 
 async function loadConfig() {
   try {
-    const resp = await fetch('/api/config');
+    const resp = await fetch('https://lto-production.up.railway.app/api/config');
     config = await resp.json();
     buildCategoryGrid();
   } catch (e) {
@@ -312,7 +312,7 @@ document.querySelectorAll('.priority-card').forEach(card => {
 
 async function issueTicket(priorityType) {
   try {
-    const resp = await fetch('/api/ticket', {
+    const resp = await fetch('https://lto-production.up.railway.app/api/ticket', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ category: selectedSubType.category, subType: selectedSubType.subType, priorityType })
