@@ -127,8 +127,15 @@ function generateTicketNumber(subCode, isPriority, officeId) {
   return `${prefix}-${String(state.ticketCounters[prefix]).padStart(3, '0')}`;
 }
 
-function getNextTicketForStation(stationType) {
-  const waiting = state.tickets.filter(t => t.status === 'WAITING' && t.steps[t.currentStepIndex] === stationType);
+function getNextTicketForStation(stationType, officeId) {
+  const state = getOfficeState(officeId);
+  const CSR_HANDLED = ['MEDICAL', 'VERIFY', 'EMISSION'];
+  let waiting;
+  if (stationType === 'CSR') {
+    waiting = state.tickets.filter(t => t.status === 'WAITING' && (t.steps[t.currentStepIndex] === 'CSR' || CSR_HANDLED.includes(t.steps[t.currentStepIndex])));
+  } else {
+    waiting = state.tickets.filter(t => t.status === 'WAITING' && t.steps[t.currentStepIndex] === stationType);
+  }
   const priority = waiting.filter(t => t.isPriority).sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt));
   const regular = waiting.filter(t => !t.isPriority).sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt));
   return [...priority, ...regular][0] || null;
@@ -216,7 +223,7 @@ app.post('/api/counter/call-next', (req, res) => {
   const officeId = req.body.office || 'DEFAULT';
   const state = getOfficeState(officeId);
   const { windowId, stationType } = req.body;
-  const next = getNextTicketForStation(stationType);
+  const next = getNextTicketForStation(stationType, officeId);
   if (!next) return res.json({ ticket: null });
 
   next.status = 'SERVING';
