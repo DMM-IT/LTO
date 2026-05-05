@@ -173,6 +173,7 @@ app.get('/api/queue', (req, res) => { const officeId = req.query.office || 'DEFA
 
 app.post('/api/ticket', (req, res) => {
   const officeId = req.body.office || 'DEFAULT';
+  const state = getOfficeState(officeId);
   const { category, subType, priorityType } = req.body;
   const cat = CATEGORIES[category];
   const tx = cat?.subTransactions[subType];
@@ -213,6 +214,7 @@ app.post('/api/ticket', (req, res) => {
 
 app.post('/api/counter/call-next', (req, res) => {
   const officeId = req.body.office || 'DEFAULT';
+  const state = getOfficeState(officeId);
   const { windowId, stationType } = req.body;
   const next = getNextTicketForStation(stationType);
   if (!next) return res.json({ ticket: null });
@@ -231,6 +233,7 @@ app.post('/api/counter/call-next', (req, res) => {
 
 app.post('/api/counter/complete', (req, res) => {
   const officeId = req.body.office || 'DEFAULT';
+  const state = getOfficeState(officeId);
   const { windowId, ticketId, checklistData } = req.body;
   const ticket = state.tickets.find(t => t.id === ticketId);
   if (!ticket) return res.status(404).json({ error: 'Not found' });
@@ -256,6 +259,7 @@ app.post('/api/counter/complete', (req, res) => {
 
 app.post('/api/counter/return', (req, res) => {
   const officeId = req.body.office || 'DEFAULT';
+  const state = getOfficeState(officeId);
   const { windowId, ticketId, reason } = req.body;
   const ticket = state.tickets.find(t => t.id === ticketId);
   if (!ticket) return res.status(404).json({ error: 'Not found' });
@@ -271,6 +275,7 @@ app.post('/api/counter/return', (req, res) => {
 
 app.post('/api/counter/no-show', (req, res) => {
   const officeId = req.body.office || 'DEFAULT';
+  const state = getOfficeState(officeId);
   const { windowId, ticketId } = req.body;
   const ticket = state.tickets.find(t => t.id === ticketId);
   if (!ticket) return res.status(404).json({ error: 'Not found' });
@@ -286,6 +291,7 @@ app.post('/api/counter/no-show', (req, res) => {
 
 app.post('/api/counter/recall', (req, res) => {
   const officeId = req.body.office || 'DEFAULT';
+  const state = getOfficeState(officeId);
   const { windowId, ticketId } = req.body;
   const ticket = state.tickets.find(t => t.id === ticketId);
   if (!ticket) return res.status(404).json({ error: 'Not found' });
@@ -297,6 +303,7 @@ app.post('/api/counter/recall', (req, res) => {
 
 app.post('/api/counter/reinstate', (req, res) => {
   const officeId = req.body.office || 'DEFAULT';
+  const state = getOfficeState(officeId);
   const { ticketId } = req.body;
   const ticket = state.tickets.find(t => t.id === ticketId);
   if (!ticket) return res.status(404).json({ error: 'Not found' });
