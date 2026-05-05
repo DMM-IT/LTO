@@ -170,7 +170,7 @@
     <div class="logo-circle">LTO</div>
     <div class="brand-text">
       <h1>Land Transportation Office</h1>
-      <p>Calapan City District Office</p>
+      <p><span class="dyn-office">Calapan City District Office</span></p>
     </div>
   </div>
   <div class="header-center">
@@ -202,7 +202,7 @@
 
 <div class="ticker-bar">
   <div class="ticker-inner" id="ticker">
-    <span>Welcome to LTO Calapan City District Office</span>
+    <span>Welcome to LTO <span class="dyn-office"><span class="dyn-office">Calapan City District Office</span></span></span>
     <span>Please keep your ticket number visible at all times</span>
     <span>Listen for your number announcement</span>
     <span>Manatili sa waiting area at pakinggan ang inyong numero</span>
@@ -349,7 +349,12 @@ function speak(ticket, windowId) {
   setTimeout(() => speechSynthesis.speak(utt), 500);
 }
 </script>
-<div id="officeBadge" style="position:fixed;top:10px;left:10px;background:rgba(0,0,0,0.6);color:white;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;z-index:9999;"></div>
-<script>document.getElementById('officeBadge').textContent='🏢 ' + (sessionStorage.getItem('officeName') || '');</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const name = sessionStorage.getItem('officeName') || 'Calapan City District Office';
+  document.querySelectorAll('.dyn-office').forEach(el => el.textContent = name);
+});
+</script>
 </body>
 </html>

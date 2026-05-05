@@ -147,7 +147,7 @@
     <div class="lto-logo">LTO</div>
     <div class="lto-title">
       <h1>Land Transportation Office</h1>
-      <p>Calapan City District Office — Enhanced Queue System v2</p>
+      <p><span class="dyn-office">Calapan City District Office</span> — Enhanced Queue System v2</p>
     </div>
   </div>
   <div class="header-time">
@@ -197,7 +197,7 @@
   <div class="ticket-wrapper">
     <div class="ticket" id="ticketCard">
       <div class="ticket-header">
-        <div class="lto-name">LTO Calapan City District Office</div>
+        <div class="lto-name">LTO <span class="dyn-office"><span class="dyn-office">Calapan City District Office</span></span></div>
         <div class="cat-name" id="tkt-catname">—</div>
         <div class="tx-name" id="tkt-txname">—</div>
       </div>
@@ -392,7 +392,12 @@ function newTransaction() {
 
 loadConfig();
 </script>
-<div id="officeBadge" style="position:fixed;top:10px;left:10px;background:rgba(0,0,0,0.6);color:white;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;z-index:9999;"></div>
-<script>document.getElementById('officeBadge').textContent='🏢 ' + (sessionStorage.getItem('officeName') || '');</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const name = sessionStorage.getItem('officeName') || 'Calapan City District Office';
+  document.querySelectorAll('.dyn-office').forEach(el => el.textContent = name);
+});
+</script>
 </body>
 </html>

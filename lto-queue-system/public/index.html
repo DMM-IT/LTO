@@ -58,8 +58,13 @@
     </a>
   </div>
 
-  <footer>LTO Calapan City District Office &mdash; Queue Management System &mdash; All computers must be on the same local network</footer>
-<script>document.addEventListener("DOMContentLoaded",function(){var btn=document.createElement("button");btn.textContent="🚪 Logout";btn.style="position:fixed;top:15px;right:15px;padding:8px 16px;background:#e53935;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;z-index:999";btn.onclick=function(){sessionStorage.clear();window.location.href="login.html";};document.body.appendChild(btn);});</script><div id="officeBadge" style="position:fixed;top:10px;left:10px;background:rgba(0,0,0,0.6);color:white;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;z-index:9999;"></div>
-<script>document.getElementById('officeBadge').textContent='🏢 ' + (sessionStorage.getItem('officeName') || '');</script>
+  <footer>LTO <span class="dyn-office"><span class="dyn-office">Calapan City District Office</span></span> &mdash; Queue Management System &mdash; All computers must be on the same local network</footer>
+<script>document.addEventListener("DOMContentLoaded",function(){var btn=document.createElement("button");btn.textContent="🚪 Logout";btn.style="position:fixed;top:15px;right:15px;padding:8px 16px;background:#e53935;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;z-index:999";btn.onclick=function(){sessionStorage.clear();window.location.href="login.html";};document.body.appendChild(btn);});</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const name = sessionStorage.getItem('officeName') || 'Calapan City District Office';
+  document.querySelectorAll('.dyn-office').forEach(el => el.textContent = name);
+});
+</script>
 </body>
 </html>
