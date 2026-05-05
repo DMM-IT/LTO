@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>if(!sessionStorage.getItem("officeId"))window.location.href="login.html";</script>
 <title>LTO Calapan – Queue System</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap');
@@ -23,7 +24,7 @@
 </head>
 <body>
   <div class="logo">LTO</div>
-  <h1>LTO Calapan City District Office</h1>
+  <h1 id="officeName">LTO Office</h1>
   <p>Queue Management System — Select a module to open</p>
 
   <div class="cards">
