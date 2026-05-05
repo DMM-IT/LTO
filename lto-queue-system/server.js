@@ -26,7 +26,7 @@ const CATEGORIES = {
     icon: "🪪",
     color: "#1565C0",
     subTransactions: {
-      SP: { name: "Student Permit", short: "Student Permit", code: "SP", steps: ["CSR", "MEDICAL", "EVAL", "RELEASING"], stepNames: ["Doc Check", "Medical", "Evaluation", "Permit Release"] },
+      SP: { name: "Student Permit", short: "Student Permit", code: "SP", steps: ["CSR", "MEDICAL", "EVAL", "CASHIER", "RELEASING"], stepNames: ["Doc Check", "Medical", "Evaluation", "Cashier", "Permit Release"] },
       NA: { name: "New Non-Professional", short: "New Non-Pro", code: "NA", steps: ["CSR", "MEDICAL", "THEORY", "PRACTICAL", "BIO", "CASHIER", "RELEASING"], stepNames: ["Docs", "Medical", "Theory", "Practical", "Bio", "Cashier", "License"] },
       NP: { name: "New Professional", short: "New Pro", code: "NP", steps: ["CSR", "MEDICAL", "THEORY", "PRACTICAL", "BIO", "CASHIER", "RELEASING"], stepNames: ["Docs", "Medical", "Theory", "Practical", "Bio", "Cashier", "License"] },
       RN: { name: "Renewal (No Exam)", short: "Renewal No Exam", code: "RN", steps: ["CSR", "MEDICAL", "ENCODING", "PHOTO_BIO", "CASHIER", "RELEASING"], stepNames: ["Docs", "Medical", "Encoding", "Photo/Bio", "Cashier", "Release"] },
