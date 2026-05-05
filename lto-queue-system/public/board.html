@@ -349,5 +349,7 @@ function speak(ticket, windowId) {
   setTimeout(() => speechSynthesis.speak(utt), 500);
 }
 </script>
+<div id="officeBadge" style="position:fixed;top:10px;left:10px;background:rgba(0,0,0,0.6);color:white;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;z-index:9999;"></div>
+<script>document.getElementById('officeBadge').textContent='🏢 ' + (sessionStorage.getItem('officeName') || '');</script>
 </body>
 </html>
