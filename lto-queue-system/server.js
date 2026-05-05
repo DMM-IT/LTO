@@ -108,21 +108,19 @@ const STATIONS = {
 };
 
 // ─── IN-MEMORY STATE ──────────────────────────────────────────────────────────
-let state = {
-  tickets: [],
-  counters: {},
-  ticketCounters: {}
-};
-
-function resetState() {
-  state.tickets = [];
-  state.counters = {};
-  state.ticketCounters = {};
+const officeStates = {};
+function getOfficeState(officeId) {
+  if (!officeStates[officeId]) officeStates[officeId] = { tickets: [], counters: {}, ticketCounters: {} };
+  return officeStates[officeId];
 }
-resetState();
+
+function resetState(officeId) {
+  officeStates[officeId] = { tickets: [], counters: {}, ticketCounters: {} };
+}
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
-function generateTicketNumber(subCode, isPriority) {
+function generateTicketNumber(subCode, isPriority, officeId) {
+  const state = getOfficeState(officeId);
   const prefix = isPriority ? `P${subCode}` : subCode;
   if (!state.ticketCounters[prefix]) state.ticketCounters[prefix] = 0;
   state.ticketCounters[prefix]++;
@@ -136,7 +134,8 @@ function getNextTicketForStation(stationType) {
   return [...priority, ...regular][0] || null;
 }
 
-function getQueueState() {
+function getQueueState(officeId) {
+  const state = getOfficeState(officeId);
   const active = state.tickets.filter(t => !['COMPLETED','NO_SHOW'].includes(t.status));
   const nowServing = {};
   Object.entries(state.counters).forEach(([wId, c]) => {
@@ -151,7 +150,7 @@ function getQueueState() {
   });
   return {
     tickets: active,
-    allTickets: state.tickets,
+    allTickets: state.tickets, officeId,
     nowServing,
     waitingByStation,
     counters: state.counters,
@@ -165,14 +164,15 @@ function getQueueState() {
 }
 
 function broadcast() {
-  io.emit('queue-updated', getQueueState());
+  io.to(officeId).emit('queue-updated', getQueueState(officeId));
 }
 
 // ─── API ROUTES ───────────────────────────────────────────────────────────────
 app.get('/api/config', (req, res) => res.json({ CATEGORIES, STATIONS, CHECKLISTS }));
-app.get('/api/queue', (req, res) => res.json(getQueueState()));
+app.get('/api/queue', (req, res) => { const officeId = req.query.office || 'DEFAULT'; res.json(getQueueState(officeId)); });
 
 app.post('/api/ticket', (req, res) => {
+  const officeId = req.body.office || 'DEFAULT';
   const { category, subType, priorityType } = req.body;
   const cat = CATEGORIES[category];
   const tx = cat?.subTransactions[subType];
@@ -212,6 +212,7 @@ app.post('/api/ticket', (req, res) => {
 });
 
 app.post('/api/counter/call-next', (req, res) => {
+  const officeId = req.body.office || 'DEFAULT';
   const { windowId, stationType } = req.body;
   const next = getNextTicketForStation(stationType);
   if (!next) return res.json({ ticket: null });
@@ -223,12 +224,13 @@ app.post('/api/counter/call-next', (req, res) => {
 
   state.counters[windowId] = { ...(state.counters[windowId] || {}), stationType, currentTicket: next.id, isOnline: true };
 
-  io.emit('ticket-called', { ticket: next, windowId, stationType });
+  io.to(officeId).emit('ticket-called', { ticket: next, windowId, stationType });
   broadcast();
   res.json({ ticket: next });
 });
 
 app.post('/api/counter/complete', (req, res) => {
+  const officeId = req.body.office || 'DEFAULT';
   const { windowId, ticketId, checklistData } = req.body;
   const ticket = state.tickets.find(t => t.id === ticketId);
   if (!ticket) return res.status(404).json({ error: 'Not found' });
@@ -253,6 +255,7 @@ app.post('/api/counter/complete', (req, res) => {
 });
 
 app.post('/api/counter/return', (req, res) => {
+  const officeId = req.body.office || 'DEFAULT';
   const { windowId, ticketId, reason } = req.body;
   const ticket = state.tickets.find(t => t.id === ticketId);
   if (!ticket) return res.status(404).json({ error: 'Not found' });
@@ -267,6 +270,7 @@ app.post('/api/counter/return', (req, res) => {
 });
 
 app.post('/api/counter/no-show', (req, res) => {
+  const officeId = req.body.office || 'DEFAULT';
   const { windowId, ticketId } = req.body;
   const ticket = state.tickets.find(t => t.id === ticketId);
   if (!ticket) return res.status(404).json({ error: 'Not found' });
@@ -281,16 +285,18 @@ app.post('/api/counter/no-show', (req, res) => {
 });
 
 app.post('/api/counter/recall', (req, res) => {
+  const officeId = req.body.office || 'DEFAULT';
   const { windowId, ticketId } = req.body;
   const ticket = state.tickets.find(t => t.id === ticketId);
   if (!ticket) return res.status(404).json({ error: 'Not found' });
 
   ticket.history.push({ action: 'RECALLED', windowId, at: new Date().toISOString() });
-  io.emit('ticket-called', { ticket, windowId, stationType: ticket.steps[ticket.currentStepIndex], isRecall: true });
+  io.to(officeId).emit('ticket-called', { ticket, windowId, stationType: ticket.steps[ticket.currentStepIndex], isRecall: true });
   res.json({ ticket });
 });
 
 app.post('/api/counter/reinstate', (req, res) => {
+  const officeId = req.body.office || 'DEFAULT';
   const { ticketId } = req.body;
   const ticket = state.tickets.find(t => t.id === ticketId);
   if (!ticket) return res.status(404).json({ error: 'Not found' });
@@ -302,6 +308,7 @@ app.post('/api/counter/reinstate', (req, res) => {
 });
 
 app.post('/api/admin/reset', (req, res) => {
+  const officeId = req.body.office || 'DEFAULT';
   resetState();
   broadcast();
   io.emit('system-reset');
@@ -309,6 +316,8 @@ app.post('/api/admin/reset', (req, res) => {
 });
 
 app.get('/api/admin/report', (req, res) => {
+  const officeId = req.query.office || 'DEFAULT';
+  const state = getOfficeState(officeId);
   const report = {
     total: state.tickets.length,
     completed: state.tickets.filter(t => t.status === 'COMPLETED').length,
@@ -326,9 +335,12 @@ app.get('/api/admin/report', (req, res) => {
 
 // ─── SOCKET.IO ────────────────────────────────────────────────────────────────
 io.on('connection', (socket) => {
-  socket.emit('queue-updated', getQueueState());
+  const officeId = socket.handshake.query.office || 'DEFAULT';
+  socket.join(officeId);
+  socket.emit('queue-updated', getQueueState(officeId));
 
   socket.on('counter-online', ({ windowId, stationType }) => {
+    const state = getOfficeState(officeId);
     state.counters[windowId] = {
       stationType,
       currentTicket: state.counters[windowId]?.currentTicket || null,
@@ -339,6 +351,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
+    const state = getOfficeState(officeId);
     Object.entries(state.counters).forEach(([wId, c]) => {
       if (c.socketId === socket.id) state.counters[wId].isOnline = false;
     });

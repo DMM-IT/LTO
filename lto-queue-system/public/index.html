@@ -21,6 +21,10 @@
   .card .url { font-size: 11px; opacity: 0.55; margin-top: 12px; font-style: italic; }
   footer { margin-top: 40px; font-size: 12px; opacity: 0.5; text-align: center; }
 </style>
+<script>
+  const OFFICE_ID = sessionStorage.getItem('officeId') || 'DEFAULT';
+  if (!sessionStorage.getItem('officeId')) window.location.href = 'login.html';
+</script>
 </head>
 <body>
   <div class="logo">LTO</div>

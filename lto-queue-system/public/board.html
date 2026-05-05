@@ -158,6 +158,10 @@
     100%{ transform: scale(1); opacity: 1; }
   }
 </style>
+<script>
+  const OFFICE_ID = sessionStorage.getItem('officeId') || 'DEFAULT';
+  if (!sessionStorage.getItem('officeId')) window.location.href = 'login.html';
+</script>
 </head>
 <body>
 
@@ -218,7 +222,7 @@
 </div>
 
 <script>
-const socket = io("https://lto-production.up.railway.app");
+const socket = io("https://lto-production.up.railway.app", { query: { office: OFFICE_ID } });
 let TRANSACTIONS = {}, STATIONS = {};
 let queueState = {};
 const MAX_WINDOWS = 10;
@@ -232,7 +236,7 @@ function updateClock() {
 setInterval(updateClock, 1000); updateClock();
 
 // Load config
-fetch('https://lto-production.up.railway.app/api/config').then(r=>r.json()).then(cfg => {
+fetch(`https://lto-production.up.railway.app/api/config?office=${OFFICE_ID}`).then(r=>r.json()).then(cfg => {
   TRANSACTIONS = cfg.TRANSACTIONS;
   STATIONS = cfg.STATIONS;
   renderBoard();

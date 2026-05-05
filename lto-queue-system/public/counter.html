@@ -144,6 +144,10 @@
   .stat-num { font-size: 28px; font-weight: 800; color: var(--blue); }
   .stat-label { font-size: 12px; color: var(--gray-500); }
 </style>
+<script>
+  const OFFICE_ID = sessionStorage.getItem('officeId') || 'DEFAULT';
+  if (!sessionStorage.getItem('officeId')) window.location.href = 'login.html';
+</script>
 </head>
 <body>
 
@@ -242,7 +246,7 @@
 </div>
 
 <script>
-const socket = io("https://lto-production.up.railway.app");
+const socket = io("https://lto-production.up.railway.app", { query: { office: OFFICE_ID } });
 let config = {}, state = { tickets: [], counters: {}, queueState: {} };
 let currentSetup = { windowId: null, stationType: null, staffName: '' };
 let currentTicket = null, currentChecklist = {}, activeTab = 'myqueue';
@@ -251,7 +255,7 @@ setInterval(() => document.getElementById('clock').textContent = new Date().toLo
 
 // Load config
 async function loadConfig() {
-  const res = await fetch('https://lto-production.up.railway.app/api/config');
+  const res = await fetch(`https://lto-production.up.railway.app/api/config?office=${OFFICE_ID}`);
   config = await res.json();
   populateStations();
 }
@@ -304,7 +308,7 @@ socket.on('queue-updated', data => {
 });
 
 async function loadQueueState() {
-  const res = await fetch('https://lto-production.up.railway.app/api/queue');
+  const res = await fetch(`https://lto-production.up.railway.app/api/queue?office=${OFFICE_ID}`);
   state.queueState = await res.json();
   renderInterface();
 }
@@ -454,8 +458,8 @@ function toggleCheck(key) {
 function callNextTicket() {
   fetch('https://lto-production.up.railway.app/api/counter/call-next', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ windowId: currentSetup.windowId, stationType: currentSetup.stationType })
+    headers: {'Content-Type': 'application/json'}, 
+    body: JSON.stringify({ windowId: currentSetup.windowId, stationType: currentSetup.stationType , office: OFFICE_ID})
   }).then(r => r.json()).then(data => {
     if (data.ticket) {
       currentTicket = data.ticket;
@@ -470,12 +474,12 @@ function completeCurrentStep() {
   
   fetch('https://lto-production.up.railway.app/api/counter/complete', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: {'Content-Type': 'application/json'}, 
     body: JSON.stringify({
       windowId: currentSetup.windowId,
       ticketId: currentTicket.id,
       checklistData: currentChecklist
-    })
+    , office: OFFICE_ID})
   }).then(r => r.json()).then(data => {
     currentTicket = null;
     currentChecklist = {};
