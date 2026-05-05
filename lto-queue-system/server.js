@@ -163,7 +163,7 @@ function getQueueState(officeId) {
   };
 }
 
-function broadcast() {
+function broadcast(officeId) {
   io.to(officeId).emit('queue-updated', getQueueState(officeId));
 }
 
@@ -201,7 +201,7 @@ app.post('/api/ticket', (req, res) => {
   };
 
   state.tickets.push(ticket);
-  broadcast();
+  broadcast(officeId);
 
   const posInQueue = state.tickets.filter(t =>
     t.status === 'WAITING' &&
@@ -227,7 +227,7 @@ app.post('/api/counter/call-next', (req, res) => {
   state.counters[windowId] = { ...(state.counters[windowId] || {}), stationType, currentTicket: next.id, isOnline: true };
 
   io.to(officeId).emit('ticket-called', { ticket: next, windowId, stationType });
-  broadcast();
+  broadcast(officeId);
   res.json({ ticket: next });
 });
 
@@ -253,7 +253,7 @@ app.post('/api/counter/complete', (req, res) => {
   ticket.currentWindow = null;
   delete state.counters[windowId]?.currentTicket;
 
-  broadcast();
+  broadcast(officeId);
   res.json({ ticket });
 });
 
@@ -269,7 +269,7 @@ app.post('/api/counter/return', (req, res) => {
   ticket.history.push({ action: 'RETURNED', reason, windowId, at: new Date().toISOString() });
   delete state.counters[windowId]?.currentTicket;
 
-  broadcast();
+  broadcast(officeId);
   res.json({ ticket });
 });
 
@@ -285,7 +285,7 @@ app.post('/api/counter/no-show', (req, res) => {
   ticket.history.push({ action: 'NO_SHOW', windowId, at: new Date().toISOString() });
   delete state.counters[windowId]?.currentTicket;
 
-  broadcast();
+  broadcast(officeId);
   res.json({ ticket });
 });
 
@@ -310,14 +310,14 @@ app.post('/api/counter/reinstate', (req, res) => {
 
   ticket.status = 'WAITING';
   ticket.history.push({ action: 'REINSTATED', at: new Date().toISOString() });
-  broadcast();
+  broadcast(officeId);
   res.json({ ticket });
 });
 
 app.post('/api/admin/reset', (req, res) => {
   const officeId = req.body.office || 'DEFAULT';
   resetState();
-  broadcast();
+  broadcast(officeId);
   io.emit('system-reset');
   res.json({ success: true });
 });
@@ -354,7 +354,7 @@ io.on('connection', (socket) => {
       isOnline: true,
       socketId: socket.id
     };
-    broadcast();
+    broadcast(officeId);
   });
 
   socket.on('disconnect', () => {
@@ -362,7 +362,7 @@ io.on('connection', (socket) => {
     Object.entries(state.counters).forEach(([wId, c]) => {
       if (c.socketId === socket.id) state.counters[wId].isOnline = false;
     });
-    broadcast();
+    broadcast(officeId);
   });
 });
 
