@@ -3,358 +3,184 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LTO Calapan – Queue Display Board</title>
+<title>LTO Queue Display Board</title>
 <script src="https://lto-production.up.railway.app/socket.io/socket.io.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --blue-dark:  #0D47A1;
-    --blue:       #1565C0;
-    --blue-mid:   #1976D2;
-    --blue-light: #42A5F5;
-    --blue-pale:  #E3F2FD;
-    --white:      #FFFFFF;
-    --gold:       #FFD600;
-    --green:      #43A047;
-    --red:        #E53935;
+    --blue-dark: #0D47A1; --blue: #1565C0; --blue-mid: #1976D2;
+    --blue-light: #42A5F5; --gold: #FFD600; --green: #43A047;
+    --red: #E53935; --white: #FFFFFF;
   }
-  html, body {
-    height: 100%; font-family: 'Poppins', sans-serif;
-    background: #0A1628; color: var(--white); overflow: hidden;
-  }
+  html, body { height: 100%; font-family: 'Poppins', sans-serif; background: #0A1628; color: var(--white); overflow: hidden; }
 
   /* HEADER */
-  .board-header {
-    display: grid; grid-template-columns: auto 1fr auto;
-    align-items: center; gap: 20px;
-    padding: 14px 32px;
-    background: linear-gradient(90deg, #0D47A1 0%, #1565C0 60%, #1976D2 100%);
-    border-bottom: 3px solid var(--blue-light);
-  }
-  .brand { display: flex; align-items: center; gap: 14px; }
-  .logo-circle {
-    width: 58px; height: 58px; border-radius: 50%; background: white;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 22px; font-weight: 900; color: var(--blue-dark);
-    box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
-  }
-  .brand-text h1 { font-size: 17px; font-weight: 700; line-height: 1.2; }
-  .brand-text p  { font-size: 12px; opacity: 0.8; }
-  .header-center { text-align: center; }
-  .header-center .sys-title { font-size: 22px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: var(--gold); }
-  .header-right { text-align: right; }
-  .header-right .time { font-size: 34px; font-weight: 800; color: var(--gold); }
-  .header-right .date { font-size: 12px; opacity: 0.8; }
+  .header { display: grid; grid-template-columns: auto 1fr auto; align-items: center; padding: 10px 24px; background: var(--blue-dark); border-bottom: 3px solid var(--blue-light); }
+  .logo-area { display: flex; align-items: center; gap: 12px; }
+  .logo-circle { width: 52px; height: 52px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--blue-dark); font-weight: 900; font-size: 16px; }
+  .logo-text h1 { font-size: 18px; font-weight: 800; }
+  .logo-text p { font-size: 11px; opacity: 0.8; }
+  .board-title { text-align: center; font-size: 22px; font-weight: 800; letter-spacing: 3px; color: var(--gold); }
+  .clock-area { text-align: right; }
+  .clock-time { font-size: 28px; font-weight: 800; color: var(--gold); }
+  .clock-date { font-size: 11px; opacity: 0.8; }
 
-  /* STATS BAR */
-  .stats-bar {
-    display: flex; justify-content: center; gap: 0;
-    background: #0D1F40; border-bottom: 1px solid rgba(255,255,255,0.1);
-  }
-  .stat-item {
-    flex: 1; text-align: center; padding: 10px 0;
-    border-right: 1px solid rgba(255,255,255,0.08);
-  }
-  .stat-item:last-child { border-right: none; }
-  .stat-item .sv { font-size: 26px; font-weight: 800; color: var(--blue-light); }
-  .stat-item .sl { font-size: 11px; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px; }
-  .stat-item.completed .sv { color: var(--green); }
-  .stat-item.waiting   .sv { color: var(--gold); }
-  .stat-item.serving   .sv { color: #F06292; }
+  /* STATS */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); background: #0d1f3c; border-bottom: 2px solid #1a3a6b; }
+  .stat { text-align: center; padding: 8px; border-right: 1px solid #1a3a6b; }
+  .stat:last-child { border-right: none; }
+  .stat-num { font-size: 28px; font-weight: 800; }
+  .stat-num.blue { color: #42A5F5; } .stat-num.red { color: #EF5350; }
+  .stat-num.yellow { color: var(--gold); } .stat-num.green { color: #66BB6A; }
+  .stat-label { font-size: 10px; letter-spacing: 1px; opacity: 0.7; text-transform: uppercase; }
 
-  /* MAIN GRID */
-  .board-main { display: grid; grid-template-columns: 1fr 340px; height: calc(100vh - 140px); }
+  /* MAIN */
+  .main { display: grid; grid-template-columns: 1fr 320px; height: calc(100vh - 115px); gap: 0; }
 
-  /* NOW SERVING SECTION */
-  .serving-section { padding: 20px 24px; overflow-y: auto; border-right: 2px solid rgba(255,255,255,0.08); }
-  .section-title {
-    font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px;
-    color: var(--blue-light); margin-bottom: 16px; padding-bottom: 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-  }
-  .serving-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+  /* COUNTER GRID */
+  .counters-section { padding: 12px; overflow: hidden; }
+  .counters-title { font-size: 12px; font-weight: 700; letter-spacing: 2px; color: var(--blue-light); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .counters-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .counter-card { background: #0d1f3c; border: 2px solid #1a3a6b; border-radius: 12px; padding: 12px; text-align: center; transition: all 0.3s; }
+  .counter-card.serving { border-color: var(--green); background: #0a2a1a; }
+  .counter-card.idle { border-color: #1a3a6b; }
+  .counter-card.offline { border-color: #333; opacity: 0.5; }
+  .counter-num { font-size: 11px; font-weight: 700; letter-spacing: 1px; opacity: 0.7; text-transform: uppercase; }
+  .counter-station { font-size: 11px; color: var(--blue-light); margin: 3px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .counter-ticket { font-size: 26px; font-weight: 900; color: var(--gold); margin: 6px 0; line-height: 1; }
+  .counter-ticket.empty { font-size: 20px; color: #444; }
+  .counter-status { font-size: 10px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .dot-serving { background: var(--green); animation: pulse 1.5s infinite; }
+  .dot-idle { background: #FFD600; }
+  .dot-offline { background: #555; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
-  .window-card {
-    background: linear-gradient(135deg, #132F4C 0%, #1A3A5C 100%);
-    border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;
-    padding: 18px 16px; text-align: center; position: relative;
-    transition: all 0.4s ease;
-  }
-  .window-card.active {
-    background: linear-gradient(135deg, #0D47A1 0%, #1565C0 100%);
-    border-color: var(--blue-light);
-    box-shadow: 0 0 24px rgba(66,165,245,0.4);
-    animation: pulse-glow 2s infinite;
-  }
-  .window-card.new-call {
-    animation: flash-call 0.5s ease 4;
-    background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%);
-    border-color: #66BB6A;
-  }
-  @keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(66,165,245,0.3); }
-    50%       { box-shadow: 0 0 36px rgba(66,165,245,0.6); }
-  }
-  @keyframes flash-call {
-    0%, 100% { transform: scale(1); }
-    50%       { transform: scale(1.04); background: linear-gradient(135deg, #27ae60 0%, #2ECC71 100%); }
-  }
-  .wc-window { font-size: 12px; font-weight: 600; opacity: 0.75; text-transform: uppercase; letter-spacing: 1px; }
-  .wc-station { font-size: 11px; opacity: 0.6; margin-bottom: 10px; }
-  .wc-label   { font-size: 12px; opacity: 0.7; }
-  .wc-number  { font-size: 42px; font-weight: 900; color: var(--gold); line-height: 1; margin: 6px 0; letter-spacing: 1px; }
-  .wc-empty   { font-size: 22px; opacity: 0.25; }
-  .wc-tx-badge { font-size: 11px; background: rgba(255,255,255,0.15); border-radius: 10px; padding: 3px 10px; margin-top: 6px; display: inline-block; }
-  .wc-priority { position: absolute; top: 10px; right: 10px; font-size: 16px; }
-  .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
-  .status-dot.online  { background: #66BB6A; box-shadow: 0 0 6px #66BB6A; }
-  .status-dot.offline { background: #888; }
-
-  /* QUEUE SIDEBAR */
-  .queue-sidebar { padding: 20px 18px; overflow-y: auto; background: #0D1A2F; display: flex; flex-direction: column; gap: 14px; }
-
-  .queue-station-card {
-    background: #132F4C; border-radius: 14px; padding: 14px 16px;
-    border-left: 4px solid var(--blue-mid);
-  }
-  .qsc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .qsc-name   { font-size: 12px; font-weight: 600; opacity: 0.85; }
-  .qsc-count  { font-size: 24px; font-weight: 800; color: var(--blue-light); }
-  .qsc-list   { display: flex; flex-wrap: wrap; gap: 6px; }
-  .qsc-ticket {
-    font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px;
-    background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.9);
-  }
-  .qsc-ticket.priority { background: rgba(255,214,0,0.2); color: var(--gold); }
-  .qsc-empty { font-size: 12px; opacity: 0.4; }
-
-  /* TICKER */
-  .ticker-bar {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    background: var(--blue-dark); border-top: 2px solid var(--blue-light);
-    padding: 8px 0; overflow: hidden; height: 36px;
-  }
-  .ticker-inner { display: inline-block; white-space: nowrap; animation: ticker 40s linear infinite; }
-  .ticker-inner span { margin: 0 40px; font-size: 13px; font-weight: 500; opacity: 0.85; }
-  @keyframes ticker { from { transform: translateX(100vw); } to { transform: translateX(-100%); } }
-
-  /* ANNOUNCEMENT OVERLAY */
-  .announcement {
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center;
-    z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s;
-    flex-direction: column; gap: 20px;
-  }
-  .announcement.show { opacity: 1; pointer-events: all; }
-  .ann-window  { font-size: 22px; color: var(--blue-light); font-weight: 600; }
-  .ann-now     { font-size: 18px; opacity: 0.8; }
-  .ann-number  { font-size: 120px; font-weight: 900; color: var(--gold); line-height: 1; animation: bounceIn 0.5s ease; }
-  .ann-tx      { font-size: 20px; color: rgba(255,255,255,0.8); }
-  .ann-priority { background: var(--gold); color: #333; font-size: 16px; font-weight: 700; padding: 6px 24px; border-radius: 30px; }
-  @keyframes bounceIn {
-    0%  { transform: scale(0.3); opacity: 0; }
-    70% { transform: scale(1.1); }
-    100%{ transform: scale(1); opacity: 1; }
-  }
+  /* WAITING QUEUE */
+  .queue-section { background: #0d1f3c; border-left: 2px solid #1a3a6b; padding: 12px; overflow-y: auto; }
+  .queue-title { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--blue-light); margin-bottom: 10px; }
+  .queue-station { background: #0a1628; border: 1px solid #1a3a6b; border-radius: 8px; padding: 10px; margin-bottom: 8px; }
+  .queue-station-name { font-size: 11px; font-weight: 700; color: var(--blue-light); margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .queue-count { background: var(--blue); border-radius: 10px; padding: 1px 8px; font-size: 11px; }
+  .queue-tickets { display: flex; flex-wrap: wrap; gap: 4px; }
+  .q-ticket { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; background: #1a3a6b; }
+  .q-ticket.priority { background: #7B3F00; color: var(--gold); }
+  .queue-empty { font-size: 11px; opacity: 0.4; font-style: italic; }
 </style>
-<script>
-  const OFFICE_ID = sessionStorage.getItem('officeId') || 'DEFAULT';
-  if (!sessionStorage.getItem('officeId')) window.location.href = 'login.html';
-</script>
 </head>
 <body>
-
-<div class="board-header">
-  <div class="brand">
+<div class="header">
+  <div class="logo-area">
     <div class="logo-circle">LTO</div>
-    <div class="brand-text">
+    <div class="logo-text">
       <h1>Land Transportation Office</h1>
-      <p><span class="dyn-office">Calapan City District Office</span></p>
+      <p class="dyn-office">Calapan City District Office</p>
     </div>
   </div>
-  <div class="header-center">
-    <div class="sys-title">🔢 Queue Display Board</div>
-  </div>
-  <div class="header-right">
-    <div class="time" id="clock">--:--:--</div>
-    <div class="date" id="dateDisp">—</div>
+  <div class="board-title">⊞ QUEUE DISPLAY BOARD</div>
+  <div class="clock-area">
+    <div class="clock-time" id="time">--:-- --</div>
+    <div class="clock-date" id="date"></div>
   </div>
 </div>
 
-<div class="stats-bar">
-  <div class="stat-item"><div class="sv" id="st-total">0</div><div class="sl">Total Today</div></div>
-  <div class="stat-item serving"><div class="sv" id="st-serving">0</div><div class="sl">Now Serving</div></div>
-  <div class="stat-item waiting"><div class="sv" id="st-waiting">0</div><div class="sl">Waiting</div></div>
-  <div class="stat-item completed"><div class="sv" id="st-done">0</div><div class="sl">Completed</div></div>
+<div class="stats">
+  <div class="stat"><div class="stat-num blue" id="sTotal">0</div><div class="stat-label">Total Today</div></div>
+  <div class="stat"><div class="stat-num red" id="sServing">0</div><div class="stat-label">Now Serving</div></div>
+  <div class="stat"><div class="stat-num yellow" id="sWaiting">0</div><div class="stat-label">Waiting</div></div>
+  <div class="stat"><div class="stat-num green" id="sCompleted">0</div><div class="stat-label">Completed</div></div>
 </div>
 
-<div class="board-main">
-  <div class="serving-section">
-    <div class="section-title">🟢 Now Serving — Windows</div>
-    <div class="serving-grid" id="servingGrid"></div>
+<div class="main">
+  <div class="counters-section">
+    <div class="counters-title">🖥 NOW SERVING — WINDOWS</div>
+    <div class="counters-grid" id="counterGrid"></div>
   </div>
-  <div class="queue-sidebar">
-    <div class="section-title">📋 Waiting Queue</div>
-    <div id="queueSidebar"></div>
+  <div class="queue-section">
+    <div class="queue-title">📋 WAITING QUEUE</div>
+    <div id="waitingQueue"></div>
   </div>
-</div>
-
-<div class="ticker-bar">
-  <div class="ticker-inner" id="ticker">
-    <span>Welcome to LTO <span class="dyn-office"><span class="dyn-office">Calapan City District Office</span></span></span>
-    <span>Please keep your ticket number visible at all times</span>
-    <span>Listen for your number announcement</span>
-    <span>Manatili sa waiting area at pakinggan ang inyong numero</span>
-    <span>Priority lanes: PWD | Senior Citizens | Pregnant Women</span>
-    <span>For inquiries, please approach the information desk</span>
-    <span>Salamat sa inyong pagtitiyaga — Thank you for your patience</span>
-  </div>
-</div>
-
-<!-- Announcement Overlay -->
-<div class="announcement" id="annOverlay">
-  <div class="ann-window" id="ann-window">Window —</div>
-  <div class="ann-now">Now Serving / Serbisyo na ngayon:</div>
-  <div class="ann-number" id="ann-number">—</div>
-  <div class="ann-tx" id="ann-tx">—</div>
-  <div class="ann-priority" id="ann-priority" style="display:none">⭐ PRIORITY LANE</div>
 </div>
 
 <script>
-const socket = io("https://lto-production.up.railway.app", { query: { office: OFFICE_ID } });
-let TRANSACTIONS = {}, STATIONS = {};
-let queueState = {};
-const MAX_WINDOWS = 10;
+const OFFICE_ID = sessionStorage.getItem('officeId') || 'DEFAULT';
+const SERVER = 'https://lto-production.up.railway.app';
+const TOTAL_WINDOWS = 12;
+
+// Dynamic office name
+document.addEventListener('DOMContentLoaded', () => {
+  const name = sessionStorage.getItem('officeName') || 'Calapan City District Office';
+  document.querySelectorAll('.dyn-office').forEach(el => el.textContent = name);
+});
 
 // Clock
 function updateClock() {
   const now = new Date();
-  document.getElementById('clock').textContent = now.toLocaleTimeString('en-PH');
-  document.getElementById('dateDisp').textContent = now.toLocaleDateString('en-PH', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+  document.getElementById('time').textContent = now.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('date').textContent = now.toLocaleDateString('en-US', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
 }
 setInterval(updateClock, 1000); updateClock();
 
-// Load config
-fetch(`https://lto-production.up.railway.app/api/config?office=${OFFICE_ID}`).then(r=>r.json()).then(cfg => {
-  TRANSACTIONS = cfg.TRANSACTIONS;
-  STATIONS = cfg.STATIONS;
-  renderBoard();
-});
+// Socket
+const socket = io(SERVER, { query: { office: OFFICE_ID } });
 
-socket.on('queue-updated', data => { queueState = data; renderBoard(); });
-
-socket.on('ticket-called', ({ ticket, windowId, isRecall }) => {
-  showAnnouncement(ticket, windowId);
-  speak(ticket, windowId);
-  flashWindowCard(windowId);
-});
-
-function renderBoard() {
-  renderServingGrid();
-  renderQueueSidebar();
-  // Stats
-  document.getElementById('st-total').textContent   = queueState.totalToday || 0;
-  document.getElementById('st-serving').textContent = queueState.servingToday || 0;
-  document.getElementById('st-waiting').textContent = queueState.waitingToday || 0;
-  document.getElementById('st-done').textContent    = queueState.completedToday || 0;
+function renderCounters(counters) {
+  const grid = document.getElementById('counterGrid');
+  grid.innerHTML = '';
+  for (let i = 1; i <= TOTAL_WINDOWS; i++) {
+    const wId = String(i);
+    const c = counters[wId];
+    const isOnline = c && c.isOnline;
+    const isServing = isOnline && c.currentTicket;
+    const status = !isOnline ? 'offline' : isServing ? 'serving' : 'idle';
+    const dotClass = !isOnline ? 'dot-offline' : isServing ? 'dot-serving' : 'dot-idle';
+    const statusText = !isOnline ? 'Offline' : isServing ? 'Serving' : 'Idle';
+    grid.innerHTML += `
+      <div class="counter-card ${status}">
+        <div class="counter-num">Window ${i}</div>
+        <div class="counter-station">${c ? c.stationType || '—' : '—'}</div>
+        <div class="counter-ticket ${isServing ? '' : 'empty'}">${isServing ? c.currentTicket : '—'}</div>
+        <div class="counter-status"><span class="status-dot ${dotClass}"></span>${statusText}</div>
+      </div>`;
+  }
 }
 
-function renderServingGrid() {
-  const grid = document.getElementById('servingGrid');
-  const nowServing = queueState.nowServing || {};
-  const counters   = queueState.counters   || {};
-
-  // Collect all known windows
-  const allWindows = new Set([...Object.keys(nowServing), ...Object.keys(counters)]);
-  if (allWindows.size === 0) { grid.innerHTML = '<div style="opacity:0.4;padding:20px;">No windows registered yet.</div>'; return; }
-
-  let html = '';
-  [...allWindows].sort().forEach(wId => {
-    const counter = counters[wId] || {};
-    const serving = nowServing[wId];
-    const ticket  = serving?.ticket;
-    const isOnline = counter.isOnline;
-    const stName   = STATIONS[counter.stationType]?.name || counter.stationType || 'Unassigned';
-
-    html += `<div class="window-card${ticket ? ' active' : ''}" id="wcard-${wId}">`;
-    html += `<div class="wc-window"><span class="status-dot ${isOnline?'online':'offline'}"></span>Window ${wId}</div>`;
-    html += `<div class="wc-station">${stName}</div>`;
-    if (ticket) {
-      html += `<div class="wc-label">NOW SERVING</div>`;
-      html += `<div class="wc-number">${ticket.id}</div>`;
-      html += `<div class="wc-tx-badge">${TRANSACTIONS[ticket.transactionCode]?.shortName || ticket.transactionCode}</div>`;
-      if (ticket.isPriority) html += `<div class="wc-priority">⭐</div>`;
-    } else {
-      html += `<div class="wc-empty">—</div><div style="font-size:12px;opacity:0.35;margin-top:4px;">${isOnline ? 'Waiting...' : 'Offline'}</div>`;
-    }
-    html += `</div>`;
+function renderQueue(tickets) {
+  const el = document.getElementById('waitingQueue');
+  const waiting = tickets.filter(t => t.status === 'WAITING');
+  const byStation = {};
+  waiting.forEach(t => {
+    const st = t.steps[t.currentStepIndex];
+    if (!byStation[st]) byStation[st] = [];
+    byStation[st].push(t);
   });
-  grid.innerHTML = html;
+  if (!Object.keys(byStation).length) { el.innerHTML = '<div class="queue-empty">No tickets waiting</div>'; return; }
+  el.innerHTML = Object.entries(byStation).map(([st, tks]) => `
+    <div class="queue-station">
+      <div class="queue-station-name">${st}<span class="queue-count">${tks.length}</span></div>
+      <div class="queue-tickets">${tks.map(t => `<span class="q-ticket ${t.isPriority?'priority':''}">${t.id}</span>`).join('')}</div>
+    </div>`).join('');
 }
 
-function renderQueueSidebar() {
-  const sidebar = document.getElementById('queueSidebar');
-  if (!STATIONS || Object.keys(STATIONS).length === 0) return;
-  const tickets = queueState.tickets || [];
-
-  let html = '';
-  Object.entries(STATIONS).forEach(([stCode, st]) => {
-    const waiting = tickets.filter(t => t.status === 'WAITING' && t.steps[t.currentStepIndex] === stCode);
-    if (waiting.length === 0 && !Object.values(queueState.counters || {}).some(c => c.stationType === stCode)) return;
-    html += `<div class="queue-station-card" style="border-left-color:${st.color}">`;
-    html += `<div class="qsc-header"><span class="qsc-name">${st.short} – ${st.name}</span><span class="qsc-count">${waiting.length}</span></div>`;
-    html += `<div class="qsc-list">`;
-    if (waiting.length === 0) {
-      html += `<span class="qsc-empty">Queue clear</span>`;
-    } else {
-      waiting.slice(0, 10).forEach(t => {
-        html += `<span class="qsc-ticket${t.isPriority?' priority':''}">${t.id}</span>`;
-      });
-      if (waiting.length > 10) html += `<span class="qsc-ticket">+${waiting.length - 10} more</span>`;
-    }
-    html += `</div></div>`;
-  });
-  sidebar.innerHTML = html || '<div style="opacity:0.4;font-size:13px;">Queue is empty</div>';
-}
-
-function flashWindowCard(windowId) {
-  const card = document.getElementById(`wcard-${windowId}`);
-  if (!card) return;
-  card.classList.add('new-call');
-  setTimeout(() => card.classList.remove('new-call'), 2500);
-}
-
-function showAnnouncement(ticket, windowId) {
-  const overlay = document.getElementById('annOverlay');
-  document.getElementById('ann-window').textContent = `Window ${windowId} — ${STATIONS[ticket.steps[ticket.currentStepIndex]]?.name || ''}`;
-  document.getElementById('ann-number').textContent = ticket.id;
-  document.getElementById('ann-tx').textContent = ticket.transactionName;
-  const pb = document.getElementById('ann-priority');
-  pb.style.display = ticket.isPriority ? 'inline-block' : 'none';
-  pb.textContent = `⭐ ${ticket.priority} PRIORITY LANE`;
-
-  overlay.classList.add('show');
-  setTimeout(() => overlay.classList.remove('show'), 5000);
-}
-
-function speak(ticket, windowId) {
-  if (!('speechSynthesis' in window)) return;
-  speechSynthesis.cancel();
-  const codes = ticket.id.split('').join(' ');
-  const prio  = ticket.isPriority ? `${ticket.priority} priority lane. ` : '';
-  const msg = `Attention! ${prio}Ticket number ${codes}, please proceed to Window ${windowId}, for ${ticket.transactionName}.`;
-  const utt = new SpeechSynthesisUtterance(msg);
-  utt.rate = 0.85; utt.pitch = 1; utt.volume = 1;
-  setTimeout(() => speechSynthesis.speak(utt), 500);
-}
-</script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  const name = sessionStorage.getItem('officeName') || 'Calapan City District Office';
-  document.querySelectorAll('.dyn-office').forEach(el => el.textContent = name);
+socket.on('queue-updated', data => {
+  document.getElementById('sTotal').textContent = data.totalToday || 0;
+  document.getElementById('sServing').textContent = data.servingToday || 0;
+  document.getElementById('sWaiting').textContent = data.waitingToday || 0;
+  document.getElementById('sCompleted').textContent = data.completedToday || 0;
+  renderCounters(data.counters || {});
+  renderQueue(data.allTickets || []);
 });
+
+fetch(`${SERVER}/api/queue?office=${OFFICE_ID}`)
+  .then(r => r.json()).then(data => {
+    document.getElementById('sTotal').textContent = data.totalToday || 0;
+    document.getElementById('sServing').textContent = data.servingToday || 0;
+    document.getElementById('sWaiting').textContent = data.waitingToday || 0;
+    document.getElementById('sCompleted').textContent = data.completedToday || 0;
+    renderCounters(data.counters || {});
+    renderQueue(data.allTickets || []);
+  });
 </script>
 </body>
 </html>
