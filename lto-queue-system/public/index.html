@@ -8,7 +8,7 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { min-height: 100%; font-family: 'Poppins', sans-serif; background: linear-gradient(rgba(10,30,80,0.85), rgba(10,30,80,0.85)), url("lto-bg.png") no-repeat center center / cover fixed; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; }
+  html, body { min-height: 100vh; font-family: 'Poppins', sans-serif; background: linear-gradient(rgba(10,30,80,0.85), rgba(10,30,80,0.85)), url("lto-bg.png") no-repeat center center / cover fixed; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; }
   .logo { width: 90px; height: 90px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 900; color: #0D47A1; margin: 0 auto 20px; box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
   h1 { font-size: 26px; font-weight: 800; text-align: center; }
   p  { font-size: 15px; opacity: 0.8; text-align: center; margin-top: 6px; margin-bottom: 44px; }
@@ -25,25 +25,7 @@
   const OFFICE_ID = sessionStorage.getItem('officeId') || 'DEFAULT';
   if (!sessionStorage.getItem('officeId')) window.location.href = 'login.html';
 </script>
-<style>
-/* lto-bg-style */
-body {
-  background-image: url('lto-bg.png') !important;
-  background-size: cover !important;
-  background-position: center !important;
-  background-attachment: fixed !important;
-  background-repeat: no-repeat !important;
-}
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: rgba(10, 22, 40, 0.88);
-  z-index: 0;
-  pointer-events: none;
-}
-body > * { position: relative; z-index: 1; }
-</style>
+
 </head>
 <body>
   <img src="lto-logo.png" style="width:90px;height:90px;object-fit:contain;margin:0 auto 20px;display:block;">
