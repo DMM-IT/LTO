@@ -68,6 +68,25 @@
   .q-ticket.priority { background: #7B3F00; color: var(--gold); }
   .queue-empty { font-size: 11px; opacity: 0.4; font-style: italic; }
 </style>
+<style>
+/* lto-bg-style */
+body {
+  background-image: url('lto-bg.png') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-attachment: fixed !important;
+  background-repeat: no-repeat !important;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 22, 40, 0.88);
+  z-index: 0;
+  pointer-events: none;
+}
+body > * { position: relative; z-index: 1; }
+</style>
 </head>
 <body style="position:relative;"><div style="position:fixed;inset:0;background:rgba(10,22,40,0.92);z-index:0;pointer-events:none;"></div>
 <div class="header">

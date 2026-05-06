@@ -20,6 +20,25 @@
     button:hover { background: #1565c0; }
     .error { color: #e53935; font-size: 13px; text-align: center; margin-top: 15px; display: none; }
   </style>
+<style>
+/* lto-bg-style */
+body {
+  background-image: url('lto-bg.png') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-attachment: fixed !important;
+  background-repeat: no-repeat !important;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 22, 40, 0.88);
+  z-index: 0;
+  pointer-events: none;
+}
+body > * { position: relative; z-index: 1; }
+</style>
 </head>
 <body style="position:relative;"><div style="position:fixed;inset:0;background:rgba(10,22,40,0.92);z-index:0;pointer-events:none;"></div>
   <div class="login-card">
