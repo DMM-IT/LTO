@@ -42,13 +42,13 @@
   .counters-section { padding: 12px; overflow: hidden; }
   .counters-title { font-size: 12px; font-weight: 700; letter-spacing: 2px; color: var(--blue-light); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
   .counters-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-  .counter-card { background: #0d1f3c; border: 2px solid #1a3a6b; border-radius: 12px; padding: 12px; text-align: center; transition: all 0.3s; }
-  .counter-card.serving { border-color: var(--green); background: #0a2a1a; }
+  .counter-card { background: rgba(13,31,60,0.9); border: 2px solid #1a3a6b; border-radius: 16px; padding: 20px 12px; text-align: center; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+  .counter-card.serving { border-color: var(--green); background: rgba(10,42,26,0.95); box-shadow: 0 0 20px rgba(67,160,71,0.3); }
   .counter-card.idle { border-color: #1a3a6b; }
   .counter-card.offline { border-color: #333; opacity: 0.5; }
-  .counter-num { font-size: 11px; font-weight: 700; letter-spacing: 1px; opacity: 0.7; text-transform: uppercase; }
-  .counter-station { font-size: 11px; color: var(--blue-light); margin: 3px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .counter-ticket { font-size: 26px; font-weight: 900; color: var(--gold); margin: 6px 0; line-height: 1; }
+  .counter-num { font-size: 13px; font-weight: 800; letter-spacing: 2px; opacity: 0.9; text-transform: uppercase; color: #fff; }
+  .counter-station { font-size: 12px; color: var(--blue-light); margin: 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+  .counter-ticket { font-size: 36px; font-weight: 900; color: var(--gold); margin: 10px 0; line-height: 1; text-shadow: 0 0 20px rgba(255,214,0,0.5); }
   .counter-ticket.empty { font-size: 20px; color: #444; }
   .counter-status { font-size: 10px; display: flex; align-items: center; justify-content: center; gap: 4px; }
   .status-dot { width: 7px; height: 7px; border-radius: 50%; }
